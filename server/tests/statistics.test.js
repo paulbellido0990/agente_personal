@@ -61,7 +61,7 @@ test('rangos inclusivos, cambios de mes y ausencia de datos sin NaN ni historia 
   assert.throws(()=>report({from:'2026-10-15'}))
   assert.throws(()=>report({from:'2024-01-01'}))
 })
-test('migración v2 a v3 conserva tareas y avisos; completedAt histórico permanece null',t=>{
+test('migración v2 a la versión actual conserva tareas y avisos; completedAt histórico permanece null',t=>{
   const path=temporary(t),old=new DatabaseSync(path)
   old.exec(readFileSync(new URL('../src/db/schema.sql',import.meta.url),'utf8'))
   old.exec(readFileSync(new URL('../src/db/migrations/002-reminders.sql',import.meta.url),'utf8'))
@@ -75,7 +75,7 @@ test('migración v2 a v3 conserva tareas y avisos; completedAt histórico perman
   assert.equal(db.prepare("SELECT occurredAt FROM task_events WHERE kind='created'").get().occurredAt,before.createdAt)
   db.close();db=openDatabase(path)
   assert.equal(db.prepare('SELECT count(*) AS n FROM task_events').get().n,1)
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,3);db.close()
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,4);db.close()
 })
 test('finalización real, edición, reapertura e importación sin fechas falsas',()=>{
   const db=openDatabase(':memory:')

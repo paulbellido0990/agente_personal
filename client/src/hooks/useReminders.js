@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { taskApi } from '../services/taskApi'
 import { requestBrowserNotifications, notifyOnce } from '../services/browserNotifications'
-export default function useReminders({ demo, tasks }) {
+export default function useReminders({ demo, tasks, connected }) {
   const [events, setEvents] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -37,7 +37,7 @@ export default function useReminders({ demo, tasks }) {
   }, [refresh, tasks])
   const activeEvents = useMemo(() => demo ? [] : events.filter(event => tasks.some(task => task.id === event.taskId && task.estado !== 'completada' && task.fechaLimite === event.fechaLimite && task.recordatorio === event.daysBefore)), [demo,events,tasks])
   useEffect(() => {
-    if (!browserEnabled || demo) return
+    if (!browserEnabled || demo || !connected) return
     let cancelled = false
     async function deliver() {
       for (const event of activeEvents.filter(e => !e.readAt && !e.notifiedAt)) {
@@ -47,13 +47,14 @@ export default function useReminders({ demo, tasks }) {
     }
     deliver()
     return () => { cancelled = true }
-  }, [activeEvents,browserEnabled,demo])
+  }, [activeEvents,browserEnabled,demo,connected])
   async function toggleBrowser() {
     if (browserEnabled) { setBrowserEnabled(false); return }
     try { await requestBrowserNotifications(); setBrowserEnabled(true); setBrowserError('') }
     catch (failure) { setBrowserError(failure.message) }
   }
   async function markRead(id) {
+    if (!connected) { setError("Reconecta con el backend para marcar avisos."); return }
     try {
       await taskApi.readReminder(id)
       setEvents(current => current.map(e => e.id === id ? { ...e, readAt: new Date().toISOString() } : e))

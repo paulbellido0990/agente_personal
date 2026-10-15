@@ -9,10 +9,11 @@ export function openDatabase(path) {
     db.exec('BEGIN IMMEDIATE')
     try {
       let version = db.prepare('PRAGMA user_version').get().user_version
-      if (version > 3) throw new Error('La base de datos pertenece a una versión más reciente.')
+      if (version > 4) throw new Error('La base de datos pertenece a una versión más reciente.')
       if (version < 1) { db.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8')); version = 1 }
       if (version < 2) { db.exec(readFileSync(new URL('./migrations/002-reminders.sql', import.meta.url), 'utf8')); version = 2 }
-      if (version < 3) db.exec(readFileSync(new URL('./migrations/003-statistics-goals.sql', import.meta.url), 'utf8'))
+      if (version < 3) { db.exec(readFileSync(new URL('./migrations/003-statistics-goals.sql', import.meta.url), 'utf8')); version = 3 }
+      if (version < 4) db.exec(readFileSync(new URL('./migrations/004-assistant.sql', import.meta.url), 'utf8'))
       db.exec('COMMIT')
     } catch (error) { db.exec('ROLLBACK'); throw error }
     return db

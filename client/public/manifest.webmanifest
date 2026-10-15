@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "ALIRA",
+  "short_name": "ALIRA",
+  "description": "Gestor personal de tareas académicas y personales.",
+  "lang": "es-PE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF9FD",
+  "theme_color": "#8056D9",
+  "icons": [
+    {
+      "src": "/icons/alira-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/alira-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/alira-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

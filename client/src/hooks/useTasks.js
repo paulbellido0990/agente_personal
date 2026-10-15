@@ -17,34 +17,37 @@ export default function useTasks() {
   const tasks = demo ? examples : realTasks
   const localTasks = local.tasks.filter(t => !t.id.startsWith('demo-'))
 
-  useEffect(() => {
-    const controller = new AbortController()
-    taskApi.list(controller.signal).then(result => {
-      if (!controller.signal.aborted) { setRealTasks(result); setConnected(true); setLoading(false) }
-    }).catch(error => {
-      if (!controller.signal.aborted) { setNotice({ type: 'error', text: error.message }); setLoading(false) }
-    })
-    return () => controller.abort()
-  }, [])
-
-  const reload = useCallback(async () => {
+  const reload = useCallback(async ({ quiet = false } = {}) => {
     if (lock.current) return false
     lock.current = true
-    setLoading(true)
+    if (!quiet) setLoading(true)
     try {
-      setRealTasks(await taskApi.list())
-      setConnected(true)
-      setNotice({ type: 'success', text: 'Listado actualizado desde el servidor.' })
+      const result = await taskApi.list(AbortSignal.timeout(5000))
+      setRealTasks(current => JSON.stringify(current) === JSON.stringify(result) ? current : result); setConnected(true)
+      if (!quiet) setNotice({ type: 'success', text: 'Listado actualizado desde el servidor.' })
       return true
     } catch (error) {
       setConnected(false)
-      setNotice({ type: 'error', text: error.message + ' Se mantiene la última lista recibida.' })
+      if (!quiet) setNotice({ type: 'error', text: error.message + ' Se mantiene la última lista recibida.' })
       return false
     } finally { setLoading(false); lock.current = false }
   }, [])
 
+  useEffect(() => {
+    let disposed = false
+    const check = () => { if (!disposed) reload({ quiet: true }) }
+    const offline = () => setConnected(false)
+    queueMicrotask(check)
+    const timer = setInterval(check, 10000)
+    window.addEventListener('online', check)
+    window.addEventListener('offline', offline)
+    window.addEventListener('focus', check)
+    return () => { disposed = true; clearInterval(timer); window.removeEventListener('online', check); window.removeEventListener('offline', offline); window.removeEventListener('focus', check) }
+  }, [reload])
+
   async function perform(operation, message) {
     if (lock.current) return false
+    if (!demo && !connected) { setNotice({ type: 'error', text: 'El backend no está disponible. No se guardaron cambios. Reconecta antes de editar.' }); return false }
     lock.current = true
     setBusy(true)
     try {

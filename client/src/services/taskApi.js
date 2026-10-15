@@ -1,10 +1,10 @@
-const defaultUrl = 'http://127.0.0.1:3001/api'
+const defaultUrl = '/api'
 export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) {
   const base = baseUrl.replace(/\/+$/, '')
-  async function request(path, { method = 'GET', body, signal, responseType } = {}) {
+  async function request(path, { method = 'GET', body, signal, responseType, timeoutMs = 15000 } = {}) {
     try {
       const response = await fetcher(base + path, {
-        method, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: body ? { 'Content-Type': 'application/json' } : {},
+        method, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs), headers: body ? { 'Content-Type': 'application/json' } : {},
         ...(body ? { body: JSON.stringify(body) } : {}),
       })
       if (response.status === 204) return null
@@ -21,6 +21,7 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
     }
   }
   return {
+    health: signal => request('/health', {signal}),
     statistics: (range,signal) => request('/statistics?' + new URLSearchParams(range),{signal}),
     goals: signal => request('/goals',{signal}),
     createGoal: body => request('/goals',{method:'POST',body}),

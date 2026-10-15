@@ -11,7 +11,7 @@ export function validId(id) {
 function object(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Envía un objeto JSON.')
 }
-function taskInput(body, importing = false) {
+export function taskInput(body, importing = false) {
   object(body)
   const allowed = importing ? recordFields : [...editable, 'id']
   if (Object.keys(body).some(key => !allowed.includes(key))) throw new HttpError(400, 'Hay campos no admitidos.')

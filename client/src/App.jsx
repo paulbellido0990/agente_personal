@@ -6,7 +6,7 @@ import SummaryCards from './components/SummaryCards'
 import TaskTable from './components/TaskTable'
 import CalendarCard from './components/CalendarCard'
 import ProgressCard from './components/ProgressCard'
-import AssistantCard from './components/AssistantCard'
+import PwaPanel from './components/PwaPanel'
 import TaskForm from './components/TaskForm'
 import DeleteTaskDialog from './components/DeleteTaskDialog'
 import ImportTasksDialog from './components/ImportTasksDialog'
@@ -27,7 +27,7 @@ export default function App() {
   const manager = useTasks()
   const realToday = useToday()
   const today = manager.demo ? DEMO_DATE : realToday
-  const reminders = useReminders({ demo: manager.demo, tasks: manager.tasks })
+  const reminders = useReminders({ demo: manager.demo, tasks: manager.tasks, connected: manager.connected })
   const summary = summarize(manager.tasks, today)
   const [editor, setEditor] = useState(null)
   const [importing, setImporting] = useState(false)
@@ -37,7 +37,7 @@ export default function App() {
   const [view, setView] = useState('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const analytical = view === 'estadisticas' || view === 'objetivos'
+  const analytical = view === 'estadisticas' || view === 'objetivos' || view === 'recordatorios' || view === 'configuracion'
   const create = initialDate => setEditor({ task: null, initialDate: typeof initialDate === 'string' ? initialDate : null })
   const disabled = manager.busy || (!manager.demo && (manager.loading || !manager.connected))
   const detailedTask = manager.tasks.find(task => task.id === detailsId)
@@ -57,7 +57,7 @@ export default function App() {
           <div className="page-heading">
             <div>
               <span className="eyebrow">TU ESPACIO PARA AVANZAR</span>
-              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
+              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : view === 'recordatorios' ? 'Tus entregas, a tiempo' : view === 'configuracion' ? 'ALIRA a tu manera' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
               <p>Organiza tus ideas, enfócate en lo importante y celebra cada avance.</p>
             </div>
             <span className="date-chip"><CalendarDays size={16} />{formatDate(today)} {manager.demo && <small>Demo</small>}</span>
@@ -73,6 +73,8 @@ export default function App() {
               {manager.demo ? 'Volver a mis tareas' : 'Explorar demo'}
             </button>
           </div>
+          <PwaPanel settings={view === 'configuracion'} busy={manager.busy || !!editor || !!deleting || importing} />
+          {!manager.demo && !manager.connected && !manager.loading && <p className="storage-warning" role="status">Sin conexión con el backend. La información visible puede estar desactualizada. Crear o modificar tareas requiere conexión; no hay guardado offline. Se reintentará automáticamente.</p>}
           {!manager.demo && manager.warning && <p className="storage-warning" role="alert">{manager.warning}</p>}
           {manager.notice && <div className={'notice ' + manager.notice.type} role={manager.notice.type === 'error' ? 'alert' : 'status'}>
             <span>{manager.notice.text}</span>
@@ -91,8 +93,8 @@ export default function App() {
             {!!manager.excludedDemo && <p className="storage-warning">Se excluyeron {manager.excludedDemo} registros identificados como demo de la importación.</p>}
           </>}
           <Suspense fallback={<p className="panel loading-message" role="status">Cargando sección…</p>}>
-            {view === 'estadisticas' && <StatisticsPage today={realToday} tasks={manager.tasks} demo={manager.demo} onGoals={() => navigate('objetivos')}/>}
-            {view === 'objetivos' && <GoalsPage today={realToday} tasks={manager.tasks} demo={manager.demo}/>}
+            {view === 'estadisticas' && <StatisticsPage today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected} onGoals={() => navigate('objetivos')}/>}
+            {view === 'objetivos' && <GoalsPage today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected}/>}
           </Suspense>
           {!analytical && <>
           {manager.demo || manager.connected || manager.tasks.length > 0
@@ -126,16 +128,16 @@ export default function App() {
                 <ArrowRight size={19} />
               </div>
             </div>
-            <aside className="right-column" aria-label="Calendario y asistente">
+            <aside className="right-column" aria-label="Calendario y próximos vencimientos">
               <CalendarCard today={today} tasks={manager.tasks} onSelect={selectCalendarDate} />
               <UpcomingCard tasks={manager.tasks} today={today} onOpen={openTask} />
-              <AssistantCard />
+              <section className="panel productivity-note"><h2>Organiza. Avanza. Logra.</h2><p>Planifica tus próximas entregas y revisa el avance de tus objetivos.</p><button className="secondary-button" onClick={() => navigate('objetivos')}>Ver mis objetivos</button></section>
             </aside>
           </div>
           </>}
-          <ReminderPanel reminders={reminders} demo={manager.demo} onOpen={openTask} />
+          {view !== 'configuracion' && <ReminderPanel reminders={reminders} demo={manager.demo} connected={manager.connected} onOpen={openTask} />}
           <footer className="page-footer">
-            <span>ALIRA <span className="muted">· Tu asistente inteligente de tareas</span></span>
+            <span>ALIRA <span className="muted">· Gestor personal de tareas</span></span>
             <span>Hecho para avanzar a tu ritmo.</span>
           </footer>
         </main>

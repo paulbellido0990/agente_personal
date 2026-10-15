@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Target, House, ListTodo, CalendarDays, ChartNoAxesCombined, Layers, Sparkles, Settings, ArrowUpRight, X } from 'lucide-react'
+import { Target, House, ListTodo, CalendarDays, ChartNoAxesCombined, Bell, Sparkles, Settings, ArrowUpRight, X } from 'lucide-react'
 const items = [
   { label: 'Inicio', icon: House, key: 'inicio' },
   { label: 'Mis tareas', icon: ListTodo, key: 'tareas' },
@@ -7,8 +7,8 @@ const items = [
   { label: 'Planificación', icon: ListTodo, key: 'planificacion' },
   { label: 'Estadísticas', icon: ChartNoAxesCombined, key: 'estadisticas' },
   { label: 'Objetivos', icon: Target, key: 'objetivos' },
-  { label: 'Categorías', icon: Layers },
-  { label: 'Asistente IA', icon: Sparkles },
+  { label: 'Recordatorios', icon: Bell, key: 'recordatorios' },
+  { label: 'Configuración', icon: Settings, key: 'configuracion' },
 ]
 export default function Sidebar({ view, onNavigate, open, onClose }) {
   const closeRef = useRef(null)
@@ -29,8 +29,7 @@ export default function Sidebar({ view, onNavigate, open, onClose }) {
           <Icon size={20} /><span>{label}</span>{!key && <small>Pronto</small>}
         </button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-note"><span className="little-spark"><Sparkles size={19} /></span><h3>Un paso a la vez.</h3><p>Los grandes logros empiezan con pequeñas tareas.</p><span>Tu espacio para avanzar <ArrowUpRight size={14} /></span></div>
-      <button className="nav-item" disabled><Settings size={20} /><span>Configuración</span><small>Pronto</small></button>
-      <div className="sidebar-footer"><span className="status-dot" /> React + SQLite · v0.5</div></div>
+      <div className="sidebar-footer"><span className="status-dot" /> React + SQLite · v0.6</div></div>
     </aside>
   </>
 }

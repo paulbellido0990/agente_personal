@@ -7,11 +7,11 @@ import StatisticsCharts from './StatisticsCharts'
 function presetRange(preset,today){
   return {from:preset==='month'?today.slice(0,7)+'-01':addDays(today,preset==='30'?-29:-6),to:today}
 }
-export default function StatisticsPage({today,tasks,demo,onGoals}) {
+export default function StatisticsPage({today,tasks,demo,connected,onGoals}) {
   const [preset,setPreset]=useState('7'),[range,setRange]=useState(()=>presetRange('7',today))
   const [draft,setDraft]=useState(range),[formError,setFormError]=useState('')
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('')
-  const report=useReport(range,tasks,!demo)
+  const report=useReport(range,tasks,!demo && connected)
   function changePreset(value){
     setPreset(value);setFormError('')
     if(value!=='custom'){const next=presetRange(value,today);setDraft(next);setRange(next)}
@@ -23,7 +23,7 @@ export default function StatisticsPage({today,tasks,demo,onGoals}) {
     setFormError('');setRange({...draft})
   }
   async function download(format){
-    if(!report.data||report.loading||report.error)return
+    if(!connected||!report.data||report.loading||report.error)return
     setExporting(true);setExportError('')
     try{
       const blob=await taskApi.downloadReport({from:report.data.from,to:report.data.to},report.data.revision,format)
@@ -47,7 +47,8 @@ export default function StatisticsPage({today,tasks,demo,onGoals}) {
     {report.loading&&<p className="panel loading-message" role="status">Calculando estadísticas…</p>}
     {report.error&&<p className="storage-warning" role="alert">{report.error} No se exportarán datos desactualizados.</p>}
     {exportError&&<p className="storage-warning" role="alert">{exportError}</p>}
-    {data&&!report.loading&&!report.error&&<>
+    {!connected && <p className="storage-warning" role="status">Estadísticas sin conexión: actualiza al reconectar. No se muestran ni exportan resultados desactualizados.</p>}
+    {connected&&data&&!report.loading&&!report.error&&<>
       <div className="panel metric-definitions"><strong>{data.from} al {data.to}</strong><p>{data.definitions.cohort}</p><p>{data.definitions.activity}</p><small>Generado: {new Date(data.generatedAt).toLocaleString('es-PE',{timeZone:'America/Lima'})} (Lima)</small></div>
       {!data.summary.total&&!data.summary.completed&&!data.summary.created&&<p className="panel loading-message">No hay datos en este periodo. Crea tus tareas reales o prueba otro rango.</p>}
       <div className="statistics-metrics">{[

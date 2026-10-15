@@ -26,7 +26,7 @@ test('migra v1 a la versión actual sin cambiar tareas; reapertura idempotente y
   let db = openDatabase(path)
   const migrated = {...db.prepare('SELECT * FROM tasks').get()}
   assert.deepEqual(migrated,{...original,recordatorio:null,completedAt:null})
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,3)
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,4)
   const tasks = createTaskService(createTaskRepository(db))
   tasks.update('original',{...input,recordatorio:1})
   let reminders = createReminderService(db,()=>new Date('2026-10-14T18:00:00Z'))
