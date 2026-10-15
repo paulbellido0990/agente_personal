@@ -1,3 +1,4 @@
+import {localDay} from '../../shared/tasks.js'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
@@ -142,6 +143,8 @@ test('proceso real inicia, se detiene y reinicia conservando SQLite', async t =>
   const created = await fetch(first.url + '/api/tasks', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({...input,recordatorio:1}) }).then(r => r.json())
   const beforeEvents=await fetch(first.url+'/api/reminders').then(r=>r.json())
   assert.equal(beforeEvents.data.length,1)
+  const createdGoal=await fetch(first.url+'/api/goals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:'Meta que persiste',fechaInicio:localDay(),fechaFin:localDay(),objetivo:5})}).then(r=>r.json())
+  assert.ok(createdGoal.data.id)
   const exited = once(first.child, 'exit'); first.child.kill(); await exited
   const second = await run()
   const found = await fetch(second.url + '/api/tasks/' + created.data.id).then(r => r.json())
@@ -149,5 +152,7 @@ test('proceso real inicia, se detiene y reinicia conservando SQLite', async t =>
   const afterEvents=await fetch(second.url+'/api/reminders').then(r=>r.json())
   assert.equal(afterEvents.data[0].id,beforeEvents.data[0].id)
   assert.equal(afterEvents.data.length,1)
+  const restartedGoals=await fetch(second.url+'/api/goals').then(r=>r.json())
+  assert.equal(restartedGoals.data.find(g=>g.id===createdGoal.data.id).objetivo,5)
   const stopped = once(second.child, 'exit'); second.child.kill(); await stopped
 })

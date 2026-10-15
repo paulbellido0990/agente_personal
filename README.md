@@ -1,7 +1,7 @@
 # ALIRA
 **Tu asistente inteligente de tareas · Organiza. Avanza. Logra.**
 
-Fase 4 de 7: calendario mensual/semanal/diario, planificación y recordatorios sobre React, Express y SQLite. Se conserva el dashboard, la navegación, los componentes y la identidad visual de las fases anteriores. Esta entrega sigue el alcance del texto adjunto: las rutas son /api/tasks.
+Fase 5 de 7: estadísticas, productividad y objetivos sobre React, Express y SQLite. La IA corresponde a Fase 6 y todavía no se implementa. Se conserva el dashboard, la navegación, los componentes y la identidad visual de las fases anteriores. Esta entrega sigue el alcance del texto adjunto: las rutas son /api/tasks.
 
 ## Requisitos y tecnologías
 Windows 11 y VS Code, Node.js **24.x** (verificado con 24.21.0) y npm. No requiere SQL Server, MySQL, un servidor SQLite ni herramientas de compilación nativa.
@@ -105,7 +105,7 @@ Flujo: componentes → useTasks → taskApi → rutas/controlador → servicio �
 
 ## SQLite y esquema
 Archivo predeterminado: **server/data/alira.db**. El directorio y el archivo se crean automáticamente al iniciar.
-schema.sql crea la versión inicial de tasks. La migración 002-reminders.sql añade recordatorio (null, 0, 1 o 3) y la tabla reminder_events, conservando id, titulo, descripcion, categoria, prioridad, estado, fechaLimite, createdAt y updatedAt. Hay claves únicas, NOT NULL, CHECK para tamaños/enumeraciones/fechas, tabla STRICT e índices. La inicialización aplica secuencialmente v1 y v2 dentro de una transacción, según PRAGMA user_version. La versión actual es 2. No reinicia tablas ni inserta demos. Una migración fallida revierte sus cambios y no adelanta la versión; una versión superior a 2 se rechaza.
+schema.sql crea la versión inicial de tasks. La migración 002-reminders.sql añade recordatorio (null, 0, 1 o 3) y la tabla reminder_events, conservando id, titulo, descripcion, categoria, prioridad, estado, fechaLimite, createdAt y updatedAt. Hay claves únicas, NOT NULL, CHECK para tamaños/enumeraciones/fechas, tabla STRICT e índices. La inicialización aplica secuencialmente v1 y v2 dentro de una transacción, según PRAGMA user_version. La migración 003-statistics-goals.sql amplía el historial y las metas. La versión actual es 3. No reinicia tablas ni inserta demos. Una migración fallida revierte sus cambios y no adelanta la versión; una versión superior a 3 se rechaza.
 IDs estables; fechas de creación/actualización en ISO UTC; fechaLimite YYYY-MM-DD o null. El servicio usa la validación compartida y una validación estricta adicional del cuerpo HTTP.
 Las consultas usan parámetros. Las búsquedas/ordenación usan la lógica compartida sobre la lista leída; no se construye SQL con valores del usuario. Adecuado para este MVP local; aún no hay paginación.
 WAL y busy_timeout ayudan con el acceso local. Para respaldar, detén el backend y copia el archivo SQLite; no copies solo el .db mientras haya escrituras activas. No se borra ninguna base al arrancar.
@@ -133,6 +133,13 @@ Respuestas correctas: { "data": ... }. Errores: { "error": { "message": "...", "
 | GET | /api/reminders | 200, avisos vigentes, incluidos los leídos |
 | PATCH | /api/reminders/:id/read | 200, marca leído de forma idempotente; cuerpo {} |
 | POST | /api/reminders/:id/claim | 200, claimed true una sola vez para un intento de notificación; cuerpo {} |
+| GET | /api/statistics?from=YYYY-MM-DD&to=YYYY-MM-DD | 200, reporte y revisión |
+| GET | /api/statistics/export.csv?from=...&to=...&revision=... | CSV del reporte vigente |
+| GET | /api/statistics/export.pdf?from=...&to=...&revision=... | PDF A4 del reporte vigente |
+| GET | /api/goals | 200, metas y progreso calculado |
+| POST | /api/goals | 201, nueva meta |
+| PUT | /api/goals/:id | 200, modifica la meta |
+| PATCH | /api/goals/:id/active | 200, cuerpo {"activa":false} o true |
 
 POST/PUT requieren titulo, prioridad y estado. descripcion/categoria/fechaLimite son opcionales; una categoría vacía se convierte en Sin categoría. Título: 3–120 caracteres, descripción: hasta 5000, categoría: hasta 80. Los campos desconocidos se rechazan. PUT no acepta id, createdAt ni updatedAt. recordatorio es opcional: null lo desactiva; 0, 1 o 3 indican días de anticipación y requieren fechaLimite. Una actualización de un cliente anterior que no envíe recordatorio conserva la preferencia si sigue habiendo fecha; al quitar la fecha se desactiva.
 GET /api/tasks admite q (título y descripción), estado, prioridad, categoria, sort=fechaLimite|prioridad|createdAt, order=asc|desc y from/to (rango inclusivo de fecha límite YYYY-MM-DD; excluye tareas sin fecha cuando hay un límite). Los filtros se combinan; sin fecha va siempre al final. Parámetros incorrectos: 400. React conserva el filtrado instantáneo local sobre la lista recibida para actualizar todo el dashboard sin peticiones por tecla.
@@ -205,7 +212,7 @@ Los errores esperados de conexión se prueban interceptando las peticiones, sin 
 
 ## Seguridad y límites
 Aplicación **local de un solo usuario**, enlazada por defecto a 127.0.0.1. CORS está restringido al origen configurado, hay límite JSON y errores centralizados sin exponer SQL ni trazas en la API. CORS no sustituye autenticación: **no publiques esta API ni la expongas a la red sin protección de acceso**.
-No hay autenticación ni integración de IA. Estadísticas detalladas, administración de categorías, asistente IA y configuración general siguen señalados como próximos. Las preferencias de recordatorio están disponibles por tarea.
+No hay autenticación ni integración de IA. Estadísticas y Objetivos ya están disponibles. Administración de categorías, asistente IA y configuración general siguen señalados como próximos. Las preferencias de recordatorio están disponibles por tarea.
 Los datos locales de otros perfiles/orígenes no son accesibles automáticamente. No hay resolución visual de conflictos de importación ni sincronización multiusuario.
 DM Sans se solicita a Google Fonts con alternativa local. La licencia queda por decidir. No se crearon commits ni se hizo push. AGENTS.md permanece intacto.
 
@@ -267,3 +274,105 @@ No se ejecutó la migración sobre la base personal ni se detuvo un servidor del
 
 ## Asignaciones para explorar la interfaz
 Pulsa **Explorar demo** en el aviso superior. Hay 14 tareas ficticias, incluidas entregas para hoy, vencidas, sin fecha, completadas y actividades de fin de mes y del mes siguiente. La fecha de referencia de la demo es el 14 de octubre de 2026. Visita Mis tareas, Calendario y Planificación para compararlas. Los ejemplos no se guardan en SQLite ni generan notificaciones; Volver a mis tareas recupera la vista personal intacta. Recarga la página si tenías una sesión de demo abierta antes de actualizar el código.
+
+## Fase 5: estadísticas y objetivos
+El alcance de esta entrega sigue la numeración del adjunto del usuario: Fase 5 es estadísticas y metas; **no IA**. No se avanzó a Fase 6.
+Primero actualiza las dependencias y reinicia el backend (Ctrl+C si estaba abierto), sin borrar SQLite:
+```powershell
+cd server
+npm.cmd install
+npm.cmd start
+```
+En otra terminal desde la raíz:
+```powershell
+cd client
+npm.cmd install
+npm.cmd run dev -- --port 5173 --strictPort
+```
+Abre http://localhost:5173, sal del modo demo y entra en **Estadísticas** u **Objetivos**.
+Se añadieron [Recharts](https://recharts.github.io/en-US/api/ResponsiveContainer/) para gráficos y [PDFKit](https://pdfkit.org/docs/getting_started.html) para reportes A4. Los módulos de Estadísticas y Objetivos se cargan al entrar; no es necesario descargar los gráficos para usar el gestor de tareas. La demo está excluida del módulo, las metas y los reportes: los ejemplos no cuentan como datos reales ni se importan automáticamente.
+Estadísticas admite últimos siete días, últimos treinta, mes actual y rango personalizado inclusivo de hasta 366 días, sin fechas futuras. Actualizar reporte recupera cambios realizados desde otra pestaña. Los filtros de este módulo son independientes del buscador de tareas del encabezado, que se deshabilita aquí.
+Hay gráficos de actividad semanal, estados, prioridades, categorías y tendencia mensual con tooltips, leyendas y tablas de datos desplegables. Los periodos sin actividad se indican expresamente; si solo hay un mes no se inventan meses previos para compararlo.
+
+### Definiciones y fórmulas
+1. **Conjunto actual (cohorte):** tareas que aún existen y cuya fecha de creación conocida está entre from y to en America/Lima. Sus estados y prioridades son **actuales**, no una reconstrucción de cómo estaban al terminar un periodo histórico. La distribución por categoría también usa este conjunto.
+2. **Total:** cantidad de tareas del conjunto actual. Pendientes, en progreso y completadas son estados separados; en esta sección pendientes no incluye en progreso, a diferencia del resumen global del dashboard.
+3. **Porcentaje completado:** 100 × completadas actuales / total del conjunto, redondeado a un decimal; 0% si está vacío. Este indicador solo necesita el estado, no una fecha histórica de finalización.
+4. **Vencidas actuales:** tareas del conjunto no completadas con fecha límite anterior a hoy en Lima. **Próximas:** tareas del conjunto no completadas con fecha entre hoy y hoy + 3 días. Son métricas actuales aunque el filtro de creación sea un periodo pasado.
+5. **Actividad creada:** identificadores distintos con evento de creación fechado dentro del rango. Incluye tareas eliminadas posteriormente. Las fechas de creación ya existentes se conservan; no se usa updatedAt.
+6. **Actividad finalizada:** identificadores distintos con evento real de finalización dentro del rango. Si una tarea se completa varias veces dentro de ese rango, se usa su **primer evento en el rango** y cuenta una vez. Los gráficos diarios/semanales/mensuales agrupan ese mismo conjunto, por lo que suman coherentemente. Al cambiar de rango puede cambiar cuál es el primer evento elegido.
+7. **Actividad semanal:** últimos siete días disponibles dentro del rango elegido (o menos si el rango es menor). **Mensual:** suma de creaciones y primeras finalizaciones por mes dentro de los límites seleccionados, no meses completos cuando los límites cortan el mes.
+8. **Dentro de plazo:** día local del evento menor o igual a la fecha límite que tenía la tarea al finalizar. Fuera de plazo: posterior. Sin fecha límite: se informa aparte. Cambiar la fecha después no reescribe el evento histórico.
+9. **Categorías:** porcentaje = 100 × cantidad de la categoría / total de la cohorte, con un decimal. El listado de categorías con más finalizaciones usa la categoría guardada al finalizar, que puede diferir de la actual.
+10. **Promedio diario verificable:** finalizadas únicas / días inclusivos del rango, con dos decimales. Solo se muestra con siete días o más y cuando el rango comienza a partir del día siguiente al inicio del registro; de otro modo aparece No disponible. No se supone que los días anteriores al registro tuvieron cero actividad. El día actual puede estar incompleto.
+11. **Mayor actividad:** fecha con más primeras finalizaciones registradas del rango; en un empate se muestra la primera. Sin eventos no se inventa una fecha.
+12. **Metas:** avance = 100 × tareas distintas finalizadas en el periodo de la meta / objetivo. La barra se limita a 100%, pero conserva el conteo real aunque supere el objetivo. No usa el filtro de Estadísticas, sino las fechas propias de la meta.
+
+### Historial verificable y migración SQLite v3
+La migración 003-statistics-goals.sql es incremental, transaccional e idempotente:
+- Añade **tasks.completedAt**, inicialmente null para todas las tareas anteriores. No rellena fechas de finalización con updatedAt.
+- Crea **task_events** con tipo created/completed, identificador estable de tarea, instante UTC y copias de categoría, prioridad y fecha límite. Las creaciones históricas usan createdAt ya almacenado; no se insertan eventos de finalización históricos.
+- Crea **analytics_metadata** con el instante real de inicio del registro.
+- Crea **goals** para nombre, descripción, periodo, cantidad objetivo, estado activo y fechas de creación/actualización.
+- Añade índices por fecha de creación/finalización y por tipo, fecha e identificador de eventos.
+- Conserva las tareas, preferencias y reminder_events existentes. Una migración fallida se revierte. Bases con versión superior a 3 se rechazan.
+Al crear una tarea directamente como completada o pasarla de otro estado a completada, se registra el instante del servidor y un evento dentro de la misma transacción. Editar una tarea ya completada o repetir el mismo estado **no** mueve la fecha ni añade finalizaciones.
+Al reabrir, completedAt vuelve a null; el evento anterior se conserva. Una finalización posterior crea un nuevo evento real. Las estadísticas y metas deduplican por tarea dentro de cada periodo.
+Importar una tarea antigua que ya estaba completada no fabrica su fecha ni un evento de finalización. Se muestra la cantidad de completadas existentes sin fecha conocida como contexto de **toda la base**, no como una finalización fechada del rango.
+El marcador 1970-01-01T00:00:00.000Z usado por la recuperación antigua para fechas de creación desconocidas no se interpreta como una creación real. Se conserva la tarea y se informa que queda fuera de la cohorte temporal; sí puede tener una finalización verificable nueva.
+Los eventos no tienen borrado en cascada: eliminar una tarea conserva su actividad mínima registrada (sin título ni descripción), por lo que sus finalizaciones pueden seguir contribuyendo a las metas y los reportes. Por eso las cantidades de actividad pueden ser mayores que el conjunto actual.
+El historial no permite reconstruir pendientes al cierre de un día pasado, duración de trabajo ni horas invertidas. ALIRA no muestra esos indicadores ni califica a la persona como productiva/improductiva.
+
+### Objetivos personales
+En Objetivos pulsa Nueva meta, indica nombre (3–120 caracteres), descripción opcional (hasta 2000), fecha inicial/final y objetivo entero de 1 a 100000. Puedes editar o desactivar/reactivar una meta sin borrarla.
+Las metas próximas, en curso, finalizadas y desactivadas permanecen en el listado; esto constituye el historial disponible. No hay un historial de versiones de cada edición ni se inventan mediciones anteriores.
+Una meta cuyo periodo cruza el inicio del registro advierte que su historial puede estar incompleto. Al volver a la sección, recargar o pulsar Actualizar metas se recalcula el progreso. No se modifica ninguna tarea para alcanzar una meta.
+
+### Exportaciones CSV y PDF
+Los botones exportan los datos y límites **aplicados**, no un rango personalizado todavía sin aplicar. Una revisión SHA-256 identifica el contenido del reporte; al exportar se recalcula desde SQLite y se compara. Si cambió, el servidor devuelve 409 y solicita actualizar antes de descargar. No se aceptan reportes arbitrarios enviados por el cliente ni se guarda una segunda copia de las tareas.
+CSV: UTF-8 con BOM, separado por comas, con nombre ALIRA, periodo, generación UTC, indicadores, distribuciones y actividad diaria/mensual. Los valores se escapan y las posibles fórmulas de hojas de cálculo se neutralizan.
+PDF: descarga A4 real, varias páginas, paleta de ALIRA, resumen, advertencias históricas, distribuciones con barras, actividad semanal/mensual y paginación. Usa fuentes estándar; símbolos fuera de su repertorio pueden no representarse correctamente. No requiere la función Imprimir del navegador.
+Ejemplo de consulta y descarga en PowerShell:
+```powershell
+$api = 'http://127.0.0.1:3001/api'
+$report = (Invoke-RestMethod "$api/statistics").data
+$filters = "from=$($report.from)&to=$($report.to)&revision=$($report.revision)"
+Invoke-WebRequest "$api/statistics/export.csv?$filters" -OutFile 'ALIRA.csv'
+Invoke-WebRequest "$api/statistics/export.pdf?$filters" -OutFile 'ALIRA.pdf'
+```
+Un PDF es un reporte de datos registrados, no una certificación de cumplimiento ni de productividad.
+
+### Archivos de Fase 5
+Nuevos:
+- server/src/db/migrations/003-statistics-goals.sql.
+- server/src/services/statisticsCalculator.js, statisticsService.js, goalService.js y reportService.js.
+- server/src/routes/statistics.js.
+- client/src/components/StatisticsPage.jsx, StatisticsCharts.jsx, GoalsPage.jsx y GoalForm.jsx.
+- client/src/hooks/useReport.js y styles/statistics.css.
+- server/tests/statistics.test.js y client/e2e/statistics.spec.js.
+Modificados: App, Sidebar, Header, main, taskApi, app del backend, inicialización SQLite, repositorio y servicio de tareas, pruebas de migración/reinicio, package.json y lockfiles de cliente/servidor y este README.
+Los cálculos están centralizados en el backend; el cliente presenta agregados, gráficos y porcentajes ya calculados. Las agrupaciones diarias se precalculan para no convertir cada evento repetidamente por cada día.
+
+### Verificaciones de Fase 5
+Se ejecutan las pruebas completas anteriores y nuevas sobre bases/procesos temporales. No se abre, migra ni vacía la base personal durante las pruebas.
+- Backend: fórmulas, categorías, periodos, días locales, datos desconocidos, migración v2→v3, transacciones de finalización, reaperturas, metas, conservación de actividad, CSV y PDF A4.
+- Cliente: pruebas existentes de fechas, almacenamiento legado, API, calendario e importación.
+- Chromium: filtros, gráficos/tablas accesibles, descargas CSV/PDF, metas y progreso, desactivación/recarga, demo excluida, errores y móvil a 360 px; además de los flujos anteriores de CRUD, calendario y recordatorios.
+Comandos:
+```powershell
+# En server:
+npm.cmd test
+# En client:
+npm.cmd test
+npm.cmd run lint
+npm.cmd run build
+npm.cmd run test:e2e
+```
+Resultados ejecutados de Fase 5:
+- Backend: **22 pruebas correctas**, incluidos reinicio real de proceso y persistencia de metas, migraciones y exportaciones.
+- Cliente: **19 pruebas correctas**.
+- Playwright/Chromium: **14 flujos correctos**, incluidos los diez anteriores, descargas CSV/PDF y móvil a 360 px.
+- **Lint y build correctos**. Capturas de escritorio y móvil revisadas; no hubo desbordamiento horizontal en la comprobación móvil.
+- git diff --check: sin errores de espacios. AGENTS.md no se modificó.
+Las dependencias instaladas informaron cero vulnerabilidades en las auditorías de npm ejecutadas en cliente y servidor. Las verificaciones no abrieron la base personal ni detuvieron servidores del usuario.
+Sin commits, push, autenticación ni IA. No se avanzó a Fase 6.

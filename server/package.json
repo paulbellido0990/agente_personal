@@ -1,6 +1,6 @@
 {
   "name": "alira-server",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -13,6 +13,7 @@
     "db:inspect": "node --env-file-if-exists=.env scripts/inspect-db.js"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "pdfkit": "^0.17.2"
   }
 }

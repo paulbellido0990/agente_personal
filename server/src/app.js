@@ -1,4 +1,5 @@
 import express from 'express'
+import { statisticsRoutes } from './routes/statistics.js'
 import { reminderRoutes } from './routes/reminders.js'
 import { createTaskRepository } from './repositories/taskRepository.js'
 import { createTaskService } from './services/taskService.js'
@@ -23,6 +24,7 @@ export function createApp({ db, origin = 'http://localhost:5173', now }) {
   })
   app.use(express.json({ limit: '1mb', strict: true }))
   app.get('/api/health', (_req, res) => { db.prepare('SELECT 1').get(); res.json({ data: { status: 'ok' } }) })
+  app.use('/api', statisticsRoutes(db,now))
   app.use('/api/reminders', reminderRoutes(db, now))
   app.use('/api/tasks', taskRoutes(createTaskService(createTaskRepository(db))))
   app.use((_req, _res, next) => next(new HttpError(404, 'La ruta solicitada no existe.')))

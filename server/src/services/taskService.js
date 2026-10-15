@@ -80,7 +80,7 @@ export function createTaskService(repo) {
           if (previous) {
             if (!same(previous, task)) throw new HttpError(409, 'Conflicto con una tarea ya guardada. No se importó este lote.', { id: task.id })
             skipped++
-          } else { repo.insert(task); imported++ }
+          } else { repo.insert(task, { imported: true }); imported++ }
         }
         return { imported, skipped }
       })

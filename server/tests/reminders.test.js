@@ -16,7 +16,7 @@ function temporary(t) {
   t.after(() => { assert.ok(resolve(root).startsWith(resolve(tmpdir())+sep) && root.includes('alira-reminders-test-')); rmSync(root,{recursive:true,force:true}) })
   return join(root,'test.db')
 }
-test('migra v1 a v2 sin cambiar tareas; reapertura idempotente y ledger persistente', t => {
+test('migra v1 a la versión actual sin cambiar tareas; reapertura idempotente y ledger persistente', t => {
   const path = temporary(t)
   const old = new DatabaseSync(path)
   old.exec(readFileSync(new URL('../src/db/schema.sql',import.meta.url),'utf8'))
@@ -25,8 +25,8 @@ test('migra v1 a v2 sin cambiar tareas; reapertura idempotente y ledger persiste
   old.close()
   let db = openDatabase(path)
   const migrated = {...db.prepare('SELECT * FROM tasks').get()}
-  assert.deepEqual(migrated,{...original,recordatorio:null})
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,2)
+  assert.deepEqual(migrated,{...original,recordatorio:null,completedAt:null})
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,3)
   const tasks = createTaskService(createTaskRepository(db))
   tasks.update('original',{...input,recordatorio:1})
   let reminders = createReminderService(db,()=>new Date('2026-10-14T18:00:00Z'))

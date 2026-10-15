@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { ArrowRight, CalendarDays, Info, Plus, X } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -21,6 +21,8 @@ import ReminderPanel from './components/ReminderPanel'
 import { summarize, formatDate, selectTasks } from './services/tasks'
 import { DEMO_DATE } from './data/demo'
 
+const StatisticsPage = lazy(() => import('./components/StatisticsPage'))
+const GoalsPage = lazy(() => import('./components/GoalsPage'))
 export default function App() {
   const manager = useTasks()
   const realToday = useToday()
@@ -35,6 +37,7 @@ export default function App() {
   const [view, setView] = useState('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const analytical = view === 'estadisticas' || view === 'objetivos'
   const create = initialDate => setEditor({ task: null, initialDate: typeof initialDate === 'string' ? initialDate : null })
   const disabled = manager.busy || (!manager.demo && (manager.loading || !manager.connected))
   const detailedTask = manager.tasks.find(task => task.id === detailsId)
@@ -49,12 +52,12 @@ export default function App() {
     <div className="app-shell">
       <Sidebar view={view} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="workspace">
-        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} onReminders={showReminders} />
+        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} onReminders={showReminders} analytics={analytical} />
         <main id="contenido" tabIndex="-1">
           <div className="page-heading">
             <div>
               <span className="eyebrow">TU ESPACIO PARA AVANZAR</span>
-              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
+              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
               <p>Organiza tus ideas, enfócate en lo importante y celebra cada avance.</p>
             </div>
             <span className="date-chip"><CalendarDays size={16} />{formatDate(today)} {manager.demo && <small>Demo</small>}</span>
@@ -87,6 +90,11 @@ export default function App() {
             </section>}
             {!!manager.excludedDemo && <p className="storage-warning">Se excluyeron {manager.excludedDemo} registros identificados como demo de la importación.</p>}
           </>}
+          <Suspense fallback={<p className="panel loading-message" role="status">Cargando sección…</p>}>
+            {view === 'estadisticas' && <StatisticsPage today={realToday} tasks={manager.tasks} demo={manager.demo} onGoals={() => navigate('objetivos')}/>}
+            {view === 'objetivos' && <GoalsPage today={realToday} tasks={manager.tasks} demo={manager.demo}/>}
+          </Suspense>
+          {!analytical && <>
           {manager.demo || manager.connected || manager.tasks.length > 0
             ? <div aria-busy={!manager.demo && manager.loading}><SummaryCards summary={summary} /></div>
             : <p className="panel loading-message" role="status">{manager.loading ? 'Cargando resumen de tareas…' : 'Resumen no disponible hasta conectar con el servidor.'}</p>}
@@ -124,6 +132,7 @@ export default function App() {
               <AssistantCard />
             </aside>
           </div>
+          </>}
           <ReminderPanel reminders={reminders} demo={manager.demo} onOpen={openTask} />
           <footer className="page-footer">
             <span>ALIRA <span className="muted">· Tu asistente inteligente de tareas</span></span>

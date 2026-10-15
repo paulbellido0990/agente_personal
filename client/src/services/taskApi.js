@@ -1,13 +1,14 @@
 const defaultUrl = 'http://127.0.0.1:3001/api'
 export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) {
   const base = baseUrl.replace(/\/+$/, '')
-  async function request(path, { method = 'GET', body, signal } = {}) {
+  async function request(path, { method = 'GET', body, signal, responseType } = {}) {
     try {
       const response = await fetcher(base + path, {
         method, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: body ? { 'Content-Type': 'application/json' } : {},
         ...(body ? { body: JSON.stringify(body) } : {}),
       })
       if (response.status === 204) return null
+      if (response.ok && responseType === 'blob') return response.blob()
       let json
       try { json = await response.json() } catch { throw new Error('La API no devolvió JSON válido. Revisa la dirección configurada.') }
       if (!response.ok) throw new Error(json.error?.message || 'El servidor rechazó la operación.')
@@ -20,6 +21,12 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
     }
   }
   return {
+    statistics: (range,signal) => request('/statistics?' + new URLSearchParams(range),{signal}),
+    goals: signal => request('/goals',{signal}),
+    createGoal: body => request('/goals',{method:'POST',body}),
+    updateGoal: (id,body) => request('/goals/' + encodeURIComponent(id),{method:'PUT',body}),
+    toggleGoal: (id,activa) => request('/goals/' + encodeURIComponent(id) + '/active',{method:'PATCH',body:{activa}}),
+    downloadReport: (range,revision,format) => request('/statistics/export.' + (format === 'csv' ? 'csv' : 'pdf') + '?' + new URLSearchParams({...range,revision}),{responseType:'blob'}),
     reminders: () => request('/reminders'),
     readReminder: id => request('/reminders/' + encodeURIComponent(id) + '/read', { method: 'PATCH', body: {} }),
     claimReminder: id => request('/reminders/' + encodeURIComponent(id) + '/claim', { method: 'POST', body: {} }),
