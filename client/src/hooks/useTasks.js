@@ -64,7 +64,7 @@ export default function useTasks() {
     return perform(async () => {
       const previous = id ? tasks.find(t => t.id === id) : null
       if (id && !previous) throw new Error('La tarea ya no está disponible.')
-      const task = demo ? buildTask(input, previous) : id ? await taskApi.update(id, taskPayload(input)) : await taskApi.create(taskPayload(input), requestId)
+      const task = demo ? buildTask(input, previous) : id ? await taskApi.update(id, taskPayload(input), input.version ?? previous.version) : await taskApi.create(taskPayload(input), requestId)
       if (demo) setExamples(previous ? tasks.map(t => t.id === id ? task : t) : [...tasks, task])
       else { setRealTasks(current => id ? current.map(t => t.id === id ? task : t) : [...current.filter(t => t.id !== task.id), task]); setConnected(true) }
     }, id ? 'Tarea actualizada.' : 'Tarea creada.')
@@ -72,13 +72,13 @@ export default function useTasks() {
   async function changeStatus(id, estado) {
     return perform(async () => {
       if (demo) setExamples(current => current.map(t => t.id === id ? buildTask({ ...t, estado }, t) : t))
-      else { const task = await taskApi.status(id, estado); setRealTasks(current => current.map(t => t.id === id ? task : t)) }
+      else { const task = await taskApi.status(id, estado, tasks.find(t => t.id === id)?.version); setRealTasks(current => current.map(t => t.id === id ? task : t)) }
     }, 'Estado actualizado.')
   }
-  async function remove(id) {
+  async function remove(id,version) {
     return perform(async () => {
       if (demo) setExamples(current => current.filter(t => t.id !== id))
-      else { await taskApi.remove(id); setRealTasks(current => current.filter(t => t.id !== id)) }
+      else { await taskApi.remove(id,version); setRealTasks(current => current.filter(t => t.id !== id)) }
     }, 'Tarea eliminada.')
   }
   async function importLocal() {

@@ -9,7 +9,7 @@ import { openDatabase } from '../src/db/database.js'
 import { createTaskRepository } from '../src/repositories/taskRepository.js'
 import { createTaskService } from '../src/services/taskService.js'
 import { createReminderService } from '../src/services/reminderService.js'
-import { createApp } from '../src/app.js'
+import { createApp, authenticatedFetch as fetch } from './helpers/authenticated.js'
 const input = {titulo:'Entrega real',descripcion:'Detalles',categoria:'Estudio',prioridad:'alta',estado:'pendiente',fechaLimite:'2026-10-15'}
 function temporary(t) {
   const root = mkdtempSync(join(tmpdir(),'alira-reminders-test-'))
@@ -25,8 +25,8 @@ test('migra v1 a la versión actual sin cambiar tareas; reapertura idempotente y
   old.close()
   let db = openDatabase(path)
   const migrated = {...db.prepare('SELECT * FROM tasks').get()}
-  assert.deepEqual(migrated,{...original,recordatorio:null,completedAt:null})
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,4)
+  assert.deepEqual(migrated,{...original,recordatorio:null,completedAt:null,version:1})
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,5)
   const tasks = createTaskService(createTaskRepository(db))
   tasks.update('original',{...input,recordatorio:1})
   let reminders = createReminderService(db,()=>new Date('2026-10-14T18:00:00Z'))

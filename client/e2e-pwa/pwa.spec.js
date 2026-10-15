@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test'
+import {test,expect} from '../e2e/fixtures'
 const API='http://127.0.0.1:3012/api'
 test.beforeEach(async({request})=>{
  for(const task of (await(await request.get(API+'/tasks')).json()).data)await request.delete(API+'/tasks/'+task.id)
@@ -37,12 +37,11 @@ test('offline: abre interfaz, no guarda ni cachea API; reconecta sin duplicar ta
  await expect(page.getByRole('button',{name:'Nueva tarea',exact:true})).toBeDisabled()
  await expect(page.getByText('Sin conexión con el backend.',{exact:false})).toBeVisible()
  await page.reload()
- await expect(page.getByRole('heading',{name:/Un día más cerca/})).toBeVisible()
- await expect(page.getByText('Resumen no disponible hasta conectar con el servidor.',{exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:'Tu espacio para avanzar',exact:true})).toBeVisible()
+ await expect(page.getByText('No se pudo verificar la sesión.',{exact:false})).toBeVisible()
  const entries=await page.evaluate(async()=>{const all=[];for(const name of await caches.keys())for(const req of await(await caches.open(name)).keys())all.push(req.url);return all})
  expect(entries.every(url=>!url.includes('/api/'))).toBe(true)
- await page.getByRole('button',{name:'Estadísticas',exact:true}).click()
- await expect(page.getByText('Estadísticas sin conexión:',{exact:false})).toBeVisible()
+ await expect(page.locator('.task-panel')).toHaveCount(0)
  await expect(page.getByRole('button',{name:'Exportar CSV',exact:true})).toHaveCount(0)
  await context.setOffline(false)
  await expect(page.getByText('Conectado al backend local',{exact:true})).toBeVisible({timeout:20000})

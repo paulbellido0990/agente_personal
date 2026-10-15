@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { localDay, addDays, formatDate } from '../../shared/tasks.js'
 const API='http://127.0.0.1:3011/api'
 const today=localDay()

@@ -9,8 +9,8 @@
 - **Eslogan:** Organiza. Avanza. Logra.
 - **Idioma:** español (Perú). Zona horaria: America/Lima.
 - **Decisión definitiva:** ALIRA no utiliza inteligencia artificial, chat, modelos de lenguaje ni servicios externos de inferencia. No reintroducirlos ni solicitar claves API.
-- **Fase actual:** 6 de 7, aplicación multiplataforma PWA sin IA.
-- **Fase 7:** publicación, alojamiento, autenticación y acceso remoto; no implementarla sin petición expresa.
+- **Fase actual:** 7 de 7, seguridad, acceso multidispositivo y preparación para producción, sin IA.
+- **Publicación:** requiere autorización expresa. No contratar planes, activar cargos ni desplegar automáticamente.
 
 ALIRA permite crear, editar, completar y eliminar tareas mediante formularios, botones y calendarios. Conserva planificación, recordatorios, estadísticas, objetivos y reportes. La PWA es una aplicación web instalable, no una aplicación nativa publicada en tiendas.
 
@@ -59,7 +59,7 @@ Conservar la identidad SaaS profesional, limpia y amable de ALIRA.
 | Prioridad alta | #FBE5E9 |
 | Información | #E7EFFF |
 
-Usar bordes de 12–20 px, sombras suaves, espacios claros y tipografía del sistema. No generar un logo nuevo. Navegación: Inicio, Mis tareas, Calendario, Planificación, Recordatorios, Estadísticas, Objetivos y Configuración básica de instalación/conexión.
+Usar bordes de 12–20 px, sombras suaves, espacios claros y tipografía del sistema. No generar un logo nuevo. Navegación: Inicio, Mis tareas, Calendario, Planificación, Recordatorios, Estadísticas, Objetivos y Configuración de cuenta, seguridad, respaldos, instalación y conexión.
 
 Verificar 360, 390, 768, 1024 y 1440 px. Sidebar desplegable en celular, tablas de tareas como tarjetas, gráficos contenidos, modales con desplazamiento y altura dinámica, formularios cómodos con teclado virtual. Controles táctiles de al menos 44 px donde corresponda. Etiquetas, foco visible, navegación por teclado y confirmación accesible de borrado. Prioridad y estado se indican con texto además del color. No mostrar controles falsamente operativos.
 
@@ -94,7 +94,7 @@ Campos: id estable, titulo, descripcion, categoria, prioridad, estado, fechaLimi
 9. Versionar caché por compilación y recursos públicos. Las actualizaciones esperan confirmación o cierre de pestañas; no forzar recargas durante un formulario.
 10. Eliminar únicamente cachés propias antiguas, nunca almacenamiento ajeno o datos del usuario.
 11. Instalar la PWA no hace disponible un backend apagado. Sin internet puede funcionar con ambos servidores locales activos; sin acceso al backend solo queda la interfaz estática.
-12. No exponer servidores a la red ni publicar sin autorización. HTTPS, alojamiento y acceso seguro quedan para Fase 7.
+12. No exponer servidores a la red ni publicar sin autorización. Producción exige HTTPS, proxy explícitamente confiable y volúmenes persistentes.
 
 ## Fases de referencia
 
@@ -104,7 +104,7 @@ Campos: id estable, titulo, descripcion, categoria, prioridad, estado, fechaLimi
 4. Calendario, planificación y recordatorios.
 5. Estadísticas, productividad, metas y reportes.
 6. PWA multiplataforma sin IA: instalación, offline seguro, reconexión y responsive.
-7. Alojamiento, autenticación y acceso remoto, pendiente de solicitud.
+7. Autenticación del propietario, seguridad, sincronización online, respaldos y preparación de producción; publicación pendiente de autorización.
 
 ## Comprobaciones y entrega
 
@@ -114,3 +114,22 @@ En client: npm.cmd test, npm.cmd run lint, npm.cmd run build, npm.cmd run test:e
 Las pruebas deben utilizar SQLite temporal o en memoria, sin vaciar ni abrir la base personal. test:pwa compila producción y utiliza puertos y base separados. Diferenciar pruebas unitarias, navegador automatizado, eventos de instalación simulados e instalación física real.
 
 Mantener README actualizado con comandos disponibles, variables, endpoints, migraciones, offline, HTTPS, uso en PC/celular/tablet y limitaciones. No inventar métricas ni asegurar instalación en Android/iOS si no se probó físicamente.
+
+## Seguridad y publicación — Fase 7
+
+- Un solo propietario, creado únicamente mediante npm.cmd run admin:create en una terminal privada. No hay registro público, credenciales por defecto ni configuración inicial abierta por HTTP.
+- Contraseñas con scrypt asíncrono N=131072, r=8, p=1, sal aleatoria y comparación constante. Mínimo 12, máximo 128 caracteres. No registrar credenciales ni pasarlas como argumentos del shell.
+- Sesiones persistentes en SQLite: token aleatorio de 256 bits; guardar únicamente su SHA-256. Cookies HttpOnly y SameSite=Strict; Secure y prefijo __Host- en producción.
+- Expiración absoluta configurable (predeterminado 168 horas). Logout revoca la sesión; cambiar contraseña revoca todas. Mantener límites de intentos y solicitudes.
+- Todas las rutas de datos exigen autenticación de backend, incluyendo importación, recordatorios y descargas. Solo salud, estado de sesión e inicio de sesión son públicos. CORS no reemplaza autenticación.
+- Escrituras autenticadas requieren X-CSRF-Token; el login requiere JSON y X-Alira-Request. Rechazar orígenes ajenos y solicitudes cross-site. No cachear cookies, tokens ni respuestas privadas.
+- Mantener CSP compatible, HSTS en producción, bloqueo de marcos y cabeceras de seguridad. No desactivar HTTPS para resolver un despliegue.
+- Configuración productiva debe declarar origen HTTPS, rutas absolutas de volúmenes y redes TRUST_PROXY; nunca confiar indiscriminadamente en encabezados reenviados.
+- Producción sirve client/dist y /api desde el mismo origen. Usar VITE_API_URL=/api; una sola instancia con volumen SQLite persistente.
+- Migración 005: owner, sessions, auth_attempts y versiones de tareas/metas. No borrar ni modificar retrospectivamente el contenido histórico. Mantener versiones 1 a 5 incrementales/transaccionales.
+- PUT/PATCH/DELETE de tareas y metas requieren If-Match con la versión leída. Validación y escritura comparten transacción; confirmar la respuesta después de COMMIT. No actualizar silenciosamente la versión de un formulario abierto.
+- La caché PWA contiene solo recursos estáticos. El dashboard se monta después de verificar la sesión. Al salir, desmontar datos de memoria y notificar a otras pestañas. Una recarga offline no acredita una sesión.
+- Respaldos con sqlite.backup, no copia simple del archivo WAL activo. Verificar integridad y retirar sesiones de la copia. Descargar exige sesión, CSRF y contraseña actual.
+- Copias periódicas en BACKUP_DIR fuera de la carpeta principal, con almacenamiento separado y copia externa cifrada a cargo del operador. No borrar automáticamente respaldos del usuario.
+- Restaurar únicamente a un archivo nuevo mediante db:restore. Nunca reemplazar la base principal sin autorización expresa, respaldo previo y servidor detenido.
+- No afirmar Docker, TLS público, Railway o dispositivos físicos probados si no se ejecutaron. No publicar ni contratar servicios para probarlos.

@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {once} from 'node:events'
 import {openDatabase} from '../src/db/database.js'
-import {createApp} from '../src/app.js'
+import {createApp,authenticatedFetch as fetch} from './helpers/authenticated.js'
 test('IA retirada: rutas inactivas y conversaciones históricas preservadas',async t=>{
  const db=openDatabase(':memory:')
  const date='2026-10-14T18:00:00.000Z'
@@ -19,5 +19,5 @@ test('IA retirada: rutas inactivas y conversaciones históricas preservadas',asy
  assert.equal((await fetch(base+'/api/tasks')).status,200)
  assert.equal(JSON.stringify(db.prepare('SELECT * FROM conversations').all()),before)
  assert.equal(db.prepare('SELECT content FROM conversation_messages').get().content,'Mensaje histórico')
- assert.equal(db.prepare('PRAGMA user_version').get().user_version,4)
+ assert.equal(db.prepare('PRAGMA user_version').get().user_version,5)
 })

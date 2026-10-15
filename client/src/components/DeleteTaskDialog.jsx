@@ -6,7 +6,7 @@ export default function DeleteTaskDialog({ task, onConfirm, onClose }) {
   async function confirm() {
     if (pending) return
     setPending(true)
-    const ok = await onConfirm(task.id)
+    const ok = await onConfirm(task.id,task.version)
     setPending(false)
     if (ok) onClose()
     else setError('No se confirmó la eliminación. Revisa la conexión y actualiza el listado antes de reintentar.')

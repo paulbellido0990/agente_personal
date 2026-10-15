@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 const API = 'http://127.0.0.1:3011/api'
 test.beforeEach(async ({ request }) => {
   const response = await request.get(API + '/tasks')

@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.db-*
+**/*.sqlite*
+**/backups
+server/data
+.codex
+*.log

@@ -2,31 +2,52 @@
 
 **Organiza. Avanza. Logra.**
 
-Aplicación para tareas académicas y personales con React, Express y SQLite. **Fase 6 de 7: PWA multiplataforma, sin inteligencia artificial.** Conserva dashboard, CRUD, búsqueda, filtros, calendario, planificación, recordatorios, estadísticas, objetivos y exportaciones CSV/PDF.
+Gestor de actividades académicas y personales con React, Express, SQLite y PWA. **Fase 7 de 7: seguridad, sesiones del propietario, acceso multidispositivo y preparación para producción.** No utiliza inteligencia artificial.
 
-No requiere claves API, servicios de IA ni pagos de inferencia. No se ha publicado, contratado alojamiento ni implementado autenticación.
+El código queda preparado para revisión de producción. **No se ha publicado**, contratado alojamiento ni configurado un dominio. La cuenta real del propietario se elige localmente; no se incluyen usuarios ni contraseñas predeterminados.
+
+## Funcionalidades
+
+- Dashboard, CRUD de tareas por formularios, estados y prioridades.
+- Búsqueda, filtros combinables y ordenamiento.
+- Calendario mensual/semanal/diario y planificación.
+- Recordatorios por fecha, avisos leídos persistentes y notificaciones con permiso.
+- Estadísticas verificables, metas y reportes CSV/PDF A4.
+- PWA responsive e instalación cuando el navegador la admite.
+- Inicio de sesión, cierre, caducidad, cambio de contraseña y revocación de sesiones.
+- Lectura centralizada desde distintos dispositivos, reconexión y detección de conflictos.
+- Respaldos consistentes bajo demanda y periódicos; restauración segura a un archivo nuevo.
+- Demo identificada y separada, sin insertarse como datos reales.
+
+No hay registro público, IA, edición offline, colas de sincronización ni bases independientes por dispositivo.
 
 ## Requisitos
 
-- Windows 11, Visual Studio Code y Node.js **24.x**; se ha usado Node 24.21.0.
-- npm y un navegador moderno.
-- SQLite viene integrado mediante node:sqlite; no necesitas SQL Server, MySQL ni herramientas nativas adicionales.
-- Las dependencias se descargan durante la instalación inicial. Después no se necesitan fuentes, CDN ni servicios externos para ejecutar la interfaz y el backend locales.
-- Playwright/Chromium se utiliza exclusivamente para pruebas y regeneración opcional de iconos.
+Windows 11 y VS Code, Node.js **24.x**, npm y un navegador moderno. SQLite se incluye mediante node:sqlite. React 19, Vite 7, Express 5, lucide-react, Recharts y PDFKit se instalan desde los lockfiles.
 
-## Ejecutar en Windows
+Las dependencias necesitan internet para instalarse inicialmente. La aplicación no utiliza fuentes ni CDN externos en ejecución. Playwright y Chromium se usan solo para pruebas y regeneración opcional de iconos.
 
-Abre la carpeta del proyecto en VS Code y usa dos terminales.
+## Instalación y cuenta propietaria
 
-Backend:
+En una terminal privada de VS Code:
 
 ```powershell
 cd server
 npm.cmd install
+npm.cmd run admin:create
+```
+
+El comando solicita un nombre y una contraseña **oculta**, de 12 a 128 caracteres, con confirmación. No escribas tu contraseña en el código, en .env, en argumentos del shell ni en el chat. El nombre admite de 3 a 80 letras, números, puntos, guiones y guiones bajos.
+
+Solo se permite un propietario. Si ya existe, el comando no lo reemplaza. No existe endpoint remoto para reclamar o crear esta cuenta. Si todavía no está configurada, el servidor puede mostrar la pantalla informativa, pero todos los datos personales permanecen bloqueados.
+
+Inicia el backend:
+
+```powershell
 npm.cmd start
 ```
 
-Cliente, desde la raíz en otra terminal:
+En otra terminal, desde la raíz:
 
 ```powershell
 cd client
@@ -34,224 +55,240 @@ npm.cmd install
 npm.cmd run dev -- --port 5173 --strictPort
 ```
 
-Abre **http://localhost:5173**. API de salud: http://127.0.0.1:3001/api/health.
-Ctrl+C detiene cada servidor. El mensaje de .env inexistente es informativo si se usan valores predeterminados. La ruta raíz del backend no es una página web y devuelve 404; abre el cliente, no el puerto 3001.
+Abre **http://localhost:5173** e inicia sesión. Usa siempre este mismo host en desarrollo: /api pasa por el proxy de Vite. No mezcles localhost con 127.0.0.1 para las cookies del navegador.
 
-El modo dev permite trabajar con recarga rápida. **El Service Worker se registra únicamente en la compilación de producción**, para evitar cachés de código de desarrollo.
+Ctrl+C detiene cada servidor. Para recarga del backend durante desarrollo: npm.cmd run dev en server. Una respuesta 401 sin iniciar sesión es el comportamiento esperado. La raíz del puerto 3001 no es el frontend en modo desarrollo.
 
-## Probar la PWA de producción
+### Probar la PWA local
 
-Mantén el backend iniciado. En client:
+Mantén el backend iniciado. Detén el servidor dev que ocupe 5173 y ejecuta en client:
 
 ```powershell
 npm.cmd run build
 npm.cmd run preview -- --host localhost --port 5173 --strictPort
 ```
 
-Detén antes el servidor dev que ocupe 5173. Abre http://localhost:5173 una vez con conexión y deja que termine de preparar los recursos. El origen coincide así con FRONTEND_ORIGIN predeterminado. Si utilizas otro puerto u origen, configúralos de forma coherente y reinicia el backend.
+Abre http://localhost:5173 con conexión inicialmente. El Service Worker solo se registra en producción, incluida esta vista previa. Preview prueba la compilación local; **no sustituye el servidor productivo Express**.
 
-En DevTools > Application puedes inspeccionar Manifest, Service Workers y Cache Storage. La caché alira-static-* contiene solo archivos públicos de la interfaz. No debería haber respuestas de /api.
+## Variables
 
-Para probar offline:
+Copia .env.example a .env únicamente si no existe. No sobrescribas una configuración previa. Reinicia al cambiar variables del servidor; las VITE_ requieren recompilar el cliente.
 
-1. Abre la compilación de producción con el backend disponible.
-2. Espera al registro del Service Worker y visita Configuración para ver el estado.
-3. Activa Offline en DevTools o desconecta la red en una prueba controlada.
-4. Recarga: la interfaz precargada debe abrirse y señalar que no puede consultar el backend.
-5. Crear, editar, completar o eliminar tareas requiere conexión; no se simula guardado ni se crea una cola.
-6. Restablece la conexión. ALIRA vuelve a consultar el servidor automáticamente, como máximo en unos diez segundos más el tiempo de respuesta.
-
-En Chromium, el modo offline automatizado puede bloquear también localhost. En uso real, **perder internet no impide trabajar si el navegador y ambos servidores siguen comunicándose localmente**. Perder acceso al backend sí impide leer datos actuales y escribirlos.
-
-## Instalación en computadora, celular y tablet
-
-- **PC con Chrome/Edge:** usa Instalar ALIRA cuando el navegador lo habilite, o su opción Instalar aplicación.
-- **Android y tablets compatibles:** usa Instalar aplicación o Añadir a pantalla de inicio desde el menú del navegador.
-- **iPhone/iPad:** abre en Safari y utiliza Compartir > Añadir a pantalla de inicio, según las opciones del dispositivo.
-- Si el navegador no ofrece beforeinstallprompt, ALIRA no muestra un botón inactivo: proporciona instrucciones alternativas en Configuración.
-- Cuando está en modo standalone o se recibe el evento appinstalled, deja de ofrecer la instalación en esa sesión.
-
-La instalación añade acceso y ventana propia; **no equivale a una app nativa publicada en una tienda**. La disponibilidad depende del navegador y sistema. Se verificaron criterios de instalación en Chromium automatizado y el comportamiento del botón mediante eventos controlados; no se comprobó instalación física en Android/iOS.
-
-### HTTPS y otros dispositivos
-
-Service Workers requieren un contexto seguro: HTTPS, con la excepción de localhost durante desarrollo. Consulta la [documentación de Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers).
-
-localhost en un celular se refiere al propio celular, no a la laptop. La configuración local actual no expone el backend a la red. Para una futura prueba entre dispositivos necesitarás una dirección alcanzable, certificado HTTPS confiable, proxy hacia la API, origen CORS correcto y autorización para los cambios de red. No se modificó firewall, HOST ni la red.
-
-Si la base y el backend están en una laptop apagada, los otros dispositivos no podrán consultar ni guardar tareas. La PWA instalada no reemplaza ese servidor. El alojamiento central, HTTPS público, autenticación y acceso remoto son el alcance pendiente de Fase 7.
-
-## Configuración
-
-Los ejemplos se encuentran en server/.env.example y client/.env.example. Copia a .env solo si todavía no existe; conserva cualquier configuración previa.
-
-| Archivo | Variable | Predeterminado |
+| Variable | Desarrollo | Producción |
 |---|---|---|
-| server/.env | HOST | 127.0.0.1 |
-| server/.env | PORT | 3001 |
-| server/.env | FRONTEND_ORIGIN | http://localhost:5173 |
-| server/.env | DB_PATH | ./data/alira.db |
-| client/.env | VITE_API_URL | /api |
+| NODE_ENV | development o sin definir | production |
+| HOST | 127.0.0.1 | Interfaz del contenedor/servidor autorizado |
+| PORT | 3001 | Puerto del proveedor o 3001 |
+| FRONTEND_ORIGIN | http://localhost:5173 | Origen HTTPS exacto sin barra final |
+| DB_PATH | ./data/alira.db | Ruta absoluta en volumen persistente |
+| SESSION_HOURS | 168 | Entre 1 y 720 |
+| TRUST_PROXY | vacío | IP/CIDR o redes explícitas del proxy autorizado |
+| BACKUP_DIR | ./backups | Ruta absoluta en almacenamiento separado |
+| BACKUP_INTERVAL_HOURS | 0 en ejemplo local | 24 por defecto si no se define; 0 desactiva |
+| VITE_API_URL, en client | /api | /api |
 
-VITE_API_URL se incorpora al compilar; reinicia Vite o vuelve a generar build si cambia. Una URL absoluta, como http://127.0.0.1:3001/api, también es compatible, pero no uses localhost para representar un servidor remoto desde un celular.
+DB_PATH y BACKUP_DIR relativos se resuelven desde server. BACKUP_DIR no puede estar dentro de la carpeta principal de datos. Producción exige rutas absolutas, origen HTTPS y TRUST_PROXY explícito. No verifica por sí sola que el operador haya montado realmente un volumen: eso debe comprobarse antes de publicar.
 
-Por defecto, Vite dev y preview reenvían /api al backend local http://127.0.0.1:3001. El destino del proxy se puede cambiar para pruebas mediante ALIRA_DEV_API_TARGET en el entorno de Vite. No es una variable pública del cliente.
+En Vite dev/preview, ALIRA_DEV_API_TARGET permite cambiar el destino del proxy /api; por defecto es http://127.0.0.1:3001. No es una variable pública ni forma parte de dist.
 
-Para publicación futura se recomienda servir interfaz y /api bajo el mismo origen HTTPS mediante un proxy inverso autorizado. El servidor estático que uses tendrá que configurar ese proxy; el proxy de Vite no forma parte de los archivos dist.
+No se necesita un secreto de sesión global: las sesiones usan tokens aleatorios y hashes almacenados. No se incluyen claves de servicios externos.
 
-DB_PATH relativo se resuelve desde server/, independientemente de la terminal. Los archivos .env y las bases SQLite están ignorados por Git. No se necesitan AI_API_KEY, AI_MODEL ni variables similares.
+## Autenticación y seguridad
 
-## Funcionalidades
+Las contraseñas usan **scrypt asíncrono**, N=131072, r=8, p=1, sal aleatoria de 16 bytes y hash de 64 bytes, con comparación constante. Es una alternativa moderna sin dependencia nativa adicional; referencia de parámetros: [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 
-- Dashboard con totales, pendientes, completadas, próximas a vencer y progreso.
-- Tareas: alta, edición, cambio de estado, confirmación de borrado y validación de título, fechas, prioridad y categoría.
-- Búsqueda por título/descripción; filtros combinables y ordenamiento por fecha límite, prioridad y creación.
-- Calendario mensual, semanal y diario; creación desde una fecha y consulta de detalles.
-- Planificación: hoy, mañana, próximos siete días, vencidas, sin fecha y completadas.
-- Recordatorios por tarea el día de entrega, uno o tres días antes. Preferencias, avisos leídos y reclamaciones se conservan en SQLite.
-- Notificaciones del navegador solo con permiso y durante la sesión. Requieren la aplicación abierta; no hay push ni avisos con la app cerrada.
-- Estadísticas con periodos, gráficos y tablas accesibles.
-- Objetivos personales: crear, editar, desactivar/reactivar y consultar avance real.
-- Reportes CSV y PDF A4, con revisión del servidor para impedir exportar una versión desactualizada.
-- Demo opcional identificada y separada en memoria; no inserta tareas en SQLite.
-- Importación explícita de localStorage legado, por lotes, sin borrar originales ni sobrescribir conflictos.
-- Configuración básica: instalación PWA, estado offline e instrucciones de conexión.
+Las sesiones usan tokens aleatorios de 32 bytes; SQLite guarda únicamente SHA-256, propietario, creación y expiración. El navegador recibe una cookie HttpOnly, Path=/ y SameSite=Strict. En producción se añade Secure y el nombre __Host-alira.sid. En desarrollo HTTP local se usa alira.sid. La sesión dura siete días por defecto, sin renovación indefinida.
 
-### Datos y métricas
+Logout elimina la sesión del servidor y desmonta los datos privados de la interfaz. Cambiar contraseña exige verificar la actual, actualiza su hash y revoca todas las sesiones. Otras pestañas reciben la señal local de salida; otros dispositivos se verifican al enfocar, al consultar la API o en las comprobaciones de sesión.
 
-El día de referencia es America/Lima; fechaLimite usa YYYY-MM-DD local y los instantes de creación, actualización y finalización usan ISO UTC. Una tarea vencida tiene fecha anterior a hoy y no está completada; no se guarda como estado independiente.
+Si falla la red durante logout, se bloquea la interfaz local y se advierte que la revocación no pudo confirmarse. Al volver a iniciar sesión se reemplaza la sesión de ese navegador. No se afirma un cierre remoto que no fue confirmado.
 
-Estados: pendiente, en_progreso y completada. Prioridades: alta, media y baja. Título de 3 a 120 caracteres, descripción hasta 5000, categoría hasta 80; recordatorio null, 0, 1 o 3 con fecha válida.
+Protecciones:
+- Sesión obligatoria en todos los endpoints personales, incluidas importación, respaldos y reportes.
+- Token CSRF derivado de la sesión para todas las escrituras autenticadas; se mantiene solo en memoria del cliente. No se muestra en Configuración.
+- Login con JSON y cabecera propia; rechazo de Origin ajeno y Sec-Fetch-Site cross-site.
+- Cinco intentos por IP cada quince minutos; los accesos válidos reinician el contador de esa IP. Límite global de treinta solicitudes de acceso por quince minutos. Los contadores se guardan en SQLite.
+- Hasta dos verificaciones de login simultáneas, veinte sesiones persistentes y seiscientas solicitudes autenticadas por minuto y sesión.
+- Cambio de contraseña y verificación de respaldo con límites adicionales.
+- Cuerpos privados de hasta 1 MB y login de hasta 4 KB.
+- SQL parametrizado, errores públicos genéricos y logs sin cuerpos, contraseñas, cookies o tokens.
+- CSP, HSTS productivo, X-Frame-Options, nosniff, política de referentes y permisos restringidos.
 
-La cohorte estadística se selecciona por fecha de creación; la actividad del periodo usa eventos reales de creación/finalización. No se infiere completedAt a partir de updatedAt. Reabrir no borra los eventos anteriores; las finalizaciones se deduplican por tarea en el periodo. Las metas cuentan tareas distintas finalizadas dentro de sus propias fechas.
+CORS está limitado a FRONTEND_ORIGIN y permite credenciales; no sustituye autenticación. En producción se usa el mismo origen para cookies y API. No hay MFA ni recuperación pública por correo; guarda la contraseña en un gestor seguro.
 
-Las finalizaciones históricas desconocidas no se inventan. Los informes señalan cobertura parcial y el inicio del registro. Los eventos conservan información mínima de actividad aunque se elimine una tarea. El cumplimiento dentro/fuera de plazo usa la fecha límite registrada al finalizar. No se estiman horas trabajadas ni productividad personal.
+## Sincronización online y conflictos
 
-CSV escapa los campos y neutraliza posibles fórmulas de hojas de cálculo. PDF usa fuentes estándar locales; algunos caracteres fuera de su repertorio pueden no representarse.
+SQLite central es la única fuente de verdad. Todos los dispositivos autorizados acceden al mismo backend. No se guarda una segunda copia de tareas en localStorage o IndexedDB. localStorage legado se importa explícitamente, conservando originales y rechazando conflictos.
 
-## Conexión y offline seguro
+Las tareas se recuperan al iniciar, cada diez segundos, al volver a la ventana y al reconectar. Las metas también se actualizan periódicamente y al volver a la ventana. Existe actualización manual. Los recordatorios se revisan con la aplicación abierta.
 
-ALIRA consulta realmente /api/tasks al iniciar, cada diez segundos y al regresar a la ventana o reconectar. No depende solo de navigator.onLine. La disponibilidad indicada corresponde al último resultado real, no garantiza que una solicitud posterior no pueda fallar.
+Las tareas y metas incluyen **version**, incrementada por SQLite. PUT/PATCH/DELETE requieren la cabecera If-Match, por ejemplo el texto entre comillas `"3"` para version=3. El servidor valida versión y escritura dentro de una transacción; la respuesta de éxito sale después de COMMIT.
 
-Cuando falta backend:
-- Se indica la desconexión y se bloquean las acciones de escritura identificadas como no disponibles.
-- La última lista en memoria puede permanecer visible, claramente advertida como desactualizada.
-- No se muestran ni exportan estadísticas antiguas como actuales.
-- Tras una recarga offline no se recuperan tareas desde la caché: solo la interfaz estática.
-- La reconexión sustituye los datos con los de SQLite; no crea tareas, duplica almacenamiento ni reenvía escrituras.
+Un formulario conserva la versión que tenía al abrirse. Si otro dispositivo cambió el registro, la API devuelve **409**, conserva la edición del servidor y solicita actualizar/revisar. Si falta la precondición devuelve **428**. No se sobrescribe silenciosamente ni se reenvía una escritura automáticamente.
 
-Un fallo de red durante una operación no equivale a un guardado confirmado. Los formularios conservan sus campos. Actualiza el listado antes de reintentar; las creaciones usan identificadores estables para evitar duplicaciones accidentales. No existe edición offline ni sincronización multiusuario.
+Crear una tarea utiliza un identificador estable para evitar duplicación al reintentar. Los cambios se reflejan solo tras recibir la respuesta real del servidor. Un fallo de red no acredita guardado; revisa el listado antes de repetir.
 
-## Arquitectura PWA y archivos
+## PWA, privacidad y dispositivos
 
-| Archivo o grupo | Función |
+Manifest con nombre ALIRA, standalone, colores lavanda y morado, iconos locales 192/512, maskable 512 y Apple 180, derivados del logo original. El botón Instalar ALIRA solo aparece cuando el navegador ofrece beforeinstallprompt. En otros casos Configuración proporciona instrucciones:
+- PC: Instalar aplicación desde Chrome/Edge cuando esté disponible.
+- Android/tablets: Instalar o Añadir a pantalla de inicio según navegador.
+- iPhone/iPad: Safari > Compartir > Añadir a pantalla de inicio.
+
+Instalar no equivale a publicar una app nativa en tiendas. No se verificó instalación física en Android/iOS; las pruebas usan Chromium y eventos controlados.
+
+El SW guarda **únicamente archivos públicos estáticos** de la compilación, incluidos módulos diferidos de gráficos. Nunca intercepta escrituras, /api ni destinos externos. Los datos privados y reportes tienen Cache-Control: no-store.
+
+Una recarga offline puede abrir la pantalla pública, pero no acredita una sesión ni recupera tareas. Si una sesión ya estaba verificada y se pierde conexión, la información en memoria se identifica como desactualizada y las escrituras quedan bloqueadas. Al salir se desmonta el dashboard; no quedan datos personales en Cache Storage.
+
+Las actualizaciones del SW se instalan en espera. Guarda/cierra formularios antes de actualizar: la activación recarga las pestañas controladas. Se eliminan únicamente cachés propias antiguas; nunca datos SQLite ni cachés de otras aplicaciones.
+
+Para acceso desde un celular/tablet se necesita una URL HTTPS alcanzable y el backend central activo. localhost en el celular no representa la laptop. Una laptop apagada no puede servir datos a otros dispositivos. No se abrió la red ni se modificó el firewall.
+
+## Datos y migraciones SQLite
+
+No se reinicializa la base ni se eliminan tareas, recordatorios, historial, metas o conversaciones antiguas.
+
+| Versión | Contenido |
 |---|---|
-| client/public/manifest.webmanifest | Nombre, alcance, standalone y colores |
-| client/public/alira.svg y icons/*.png | Logo original e iconos 192, 512, maskable 512 y Apple 180 |
-| client/pwa.mjs | Plugin local Vite y código del SW; versión basada en bundle, política y recursos públicos |
-| client/vite.config.js | Integración del plugin y proxy /api |
-| client/src/hooks/usePwa.js | Registro, instalación y actualización controlada |
-| client/src/components/PwaPanel.jsx | Instalación y configuración básica |
-| client/src/styles/pwa.css | Responsive y controles táctiles |
-| client/src/hooks/useTasks.js | Consultas reales, recuperación y bloqueo de escrituras sin conexión |
-| client/src/services/taskApi.js | Única capa HTTP y URL configurable |
-| client/src/components/{TaskTable,CalendarPage,PlanningPage,StatisticsPage,GoalsPage,ReminderPanel}.jsx | Funciones de gestión conservadas |
-| server/src/{routes,controllers,services,repositories}/ | REST, validación, cálculos y acceso SQL |
-| server/src/db/ | Esquema y migraciones incrementales |
-| shared/tasks.js y calendar.js | Modelo, validación, días locales y calendario |
-| client/scripts/generate-icons.mjs | Regeneración local del logo a PNG |
-| client/tests/pwa.test.mjs y e2e-pwa/ | Caché, instalación, offline, reconexión y actualización |
-| server/tests/without-ai.test.js | Rutas IA retiradas y preservación de conversaciones |
+| 1 | Tareas y restricciones |
+| 2 | Preferencias y registros de recordatorios |
+| 3 | completedAt, task_events, analytics_metadata y goals |
+| 4 | Tablas históricas de conversaciones, conservadas e inactivas |
+| 5 | owner, sessions, auth_attempts y versiones/triggers de tareas y metas |
 
-El Service Worker precarga solo HTML, JS/CSS, manifest, logo e iconos de la compilación, incluidos los módulos diferidos de estadísticas y metas. No intercepta escrituras, /api ni otros orígenes. No guarda respuestas privadas ni reportes.
+Las migraciones se aplican secuencialmente en una transacción, son idempotentes y rechazan versiones superiores a 5. La cuenta no se crea automáticamente durante la migración.
 
-Los recursos estáticos propios usan la caché versionada; las navegaciones intentan la red y, si falla, abren index.html precargado. Una versión nueva se instala en espera. El usuario puede guardar/cerrar formularios y pulsar Actualizar ALIRA; esto activa la versión y recarga las pestañas controladas. También se activa al cerrar las pestañas antiguas. Se eliminan solo cachés alira-static-* obsoletas, sin tocar otras cachés ni SQLite. Se comprueban actualizaciones al abrir y aproximadamente cada hora con la app abierta.
+Las fechas límite son días locales YYYY-MM-DD de America/Lima; los instantes son ISO UTC. El título admite 3–120 caracteres. Prioridades alta/media/baja; estados pendiente/en_progreso/completada. Los datos demo siguen separados.
 
-## API REST
+Las estadísticas conservan la distinción entre estados actuales y eventos históricos. No se inventan finalizaciones a partir de updatedAt. Las metas cuentan tareas distintas finalizadas en sus fechas. CSV neutraliza fórmulas y PDF es A4 con fuentes locales; algunos caracteres especiales pueden no representarse.
 
-Respuestas JSON: {data: ...}; errores: {error: {message: ...}}. SQL parametrizado y validación en backend.
+## API
 
-| Método | Ruta | Operación |
-|---|---|---|
-| GET | /api/health | Estado de API/SQLite |
-| GET, POST | /api/tasks | Listar con filtros / crear |
-| GET, PUT, DELETE | /api/tasks/:id | Consultar / editar / eliminar |
-| PATCH | /api/tasks/:id/status | Cambiar estado |
-| POST | /api/tasks/import | Importar lote legado |
-| GET | /api/reminders | Recuperar avisos |
-| PATCH | /api/reminders/:id/read | Marcar leído |
-| POST | /api/reminders/:id/claim | Reclamar notificación una sola vez |
-| GET | /api/statistics | Agregados por periodo |
-| GET | /api/statistics/export.csv y export.pdf | Descargar reporte con revisión |
-| GET, POST | /api/goals | Listar / crear metas |
-| PUT | /api/goals/:id | Editar meta |
-| PATCH | /api/goals/:id/active | Activar/desactivar meta |
+Públicos mínimos: GET /api/health, GET /api/auth/session y POST /api/auth/login.
+Todas las rutas siguientes requieren sesión:
 
-Las antiguas rutas /api/assistant ya no existen.
+| Rutas | Operación |
+|---|---|
+| POST /api/auth/logout | Revocar sesión |
+| POST /api/auth/password | Cambiar contraseña y revocar todas |
+| GET /api/settings | Versión y almacenamiento |
+| POST /api/settings/backup | SQLite consistente; exige contraseña actual y CSRF |
+| GET, POST /api/tasks | Listar/crear |
+| GET, PUT, DELETE /api/tasks/:id | Consultar/editar/eliminar |
+| PATCH /api/tasks/:id/status | Cambiar estado |
+| POST /api/tasks/import | Importar datos legados |
+| GET /api/reminders | Avisos |
+| PATCH /api/reminders/:id/read | Marcar leído |
+| POST /api/reminders/:id/claim | Reclamar notificación |
+| GET /api/statistics | Estadísticas |
+| GET /api/statistics/export.csv y export.pdf | Descargar reportes con revisión |
+| GET, POST /api/goals | Listar/crear metas |
+| PUT /api/goals/:id | Editar meta |
+| PATCH /api/goals/:id/active | Activar/desactivar |
 
-## SQLite y conservación de datos
+No existen rutas de registro público ni de IA. Las respuestas JSON siguen {data: ...} o {error: {message: ...}}.
 
-No se reinicializó ni se eliminó la base personal. SQLite sigue siendo la fuente de verdad; no se añadieron tablas para duplicar datos offline.
+## Copias de seguridad
 
-Migraciones conservadas:
-1. schema.sql: tareas y restricciones.
-2. 002-reminders.sql: preferencias y registros de recordatorios.
-3. 003-statistics-goals.sql: completedAt, task_events, analytics_metadata y goals.
-4. 004-assistant.sql: tablas históricas conversations, conversation_messages y assistant_proposals, **inactivas y conservadas**.
+En Configuración puedes descargar un respaldo verificando tu contraseña. Las copias contienen tareas, metas, historial, conversaciones antiguas y hash de acceso: son **privadas**. No contienen sesiones reutilizables ni contadores de intentos.
 
-Se mantiene user_version=4 para abrir bases existentes e inicializar entornos compatibles. La migración histórica 004 permanece; no se usan ni borran sus datos. No existe un nuevo endpoint de lectura/borrado de conversaciones. Una eventual eliminación necesitaría autorización explícita y una migración independiente. Los servicios, SDK, variables y pruebas exclusivos de IA se retiraron; los módulos de tareas, reportes y estadísticas siguen activos.
-
-La inicialización es incremental, transaccional e idempotente. No inserta demos y rechaza versiones superiores a la soportada. Antes de trasladar datos entre equipos, detén el backend y realiza una copia segura de la base; no borres archivos WAL de una base activa.
-
-## Pruebas
-
-Backend:
+También puedes ejecutar desde server:
 
 ```powershell
-cd server
-npm.cmd test
+npm.cmd run db:backup
 ```
 
-Cliente:
+Se usa sqlite.backup sobre la base activa, se verifica integridad y se publica la copia completa por renombrado. No se copia simplemente el .db mientras WAL está activo. Los archivos se crean con permisos restrictivos cuando el sistema lo soporta; en Windows configura también ACL privadas.
+
+Con BACKUP_INTERVAL_HOURS mayor que cero se genera una copia al iniciar y periódicamente (24 h por defecto en producción). No hay trabajos externos o servicios de pago. El temporizador necesita que el proceso esté activo.
+
+**Estrategia del operador:** volumen de datos y almacenamiento de respaldos separados; copia diaria cifrada fuera del servidor/volumen principal; al menos siete diarias y cuatro semanales, control de espacio y prueba mensual de restauración. El programa no borra automáticamente respaldos del usuario ni sube archivos a terceros. La replicación externa y rotación necesitan configurarse en el alojamiento autorizado.
+
+### Restaurar sin tocar la base principal
 
 ```powershell
-cd client
-npm.cmd test
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run test:e2e
-npm.cmd run test:pwa
+npm.cmd run db:restore -- --source RUTA_DE_COPIA.db --target RUTA_NUEVA_RESTAURADA.db
 ```
 
-Si Chromium no está instalado: npx playwright install chromium (requiere descargarlo una vez). Para regenerar los PNG del logo: npm.cmd run icons:generate; los iconos ya están incluidos y no hace falta regenerarlos para ejecutar ALIRA.
+El destino debe ser nuevo y diferente de DB_PATH. Se comprueba integridad, se aplican migraciones compatibles y se eliminan sesiones/contadores de la copia restaurada. Un reemplazo de la base principal requiere **autorización expresa**, servidor detenido, respaldo reciente y verificación previa de esta copia temporal. Este trabajo no realizó ninguna restauración sobre la base personal.
 
-test:e2e utiliza servidores 3011/5174 y SQLite temporal. test:pwa compila producción, usa 3012/5175 y una base temporal separada. No vacían ni usan la base personal. La prueba de actualización utiliza un servidor estático temporal adicional.
+No borres WAL de una base activa. Un rollback de código no deshace migraciones: conserva la versión de esquema compatible o restaura una copia anterior verificada, solo con aprobación y considerando los cambios posteriores.
 
-La cobertura incluye CRUD, filtros, importación, persistencia/reinicio, calendarios, recordatorios, metas, métricas, reportes, manifest, dimensiones PNG, registro del SW, criterios de instalación de Chromium, caché sin API, offline, API caída con navegador online, reconexión y tamaños 360/390/768/1024/1440 px. La instalación del botón se prueba con eventos simulados; no equivale a instalación real en equipos físicos.
+## Producción y despliegue pendiente
 
-## Limitaciones y siguiente fase
+Estrategia preparada: **un contenedor Node 24, un origen HTTPS y una instancia con SQLite persistente**. Express sirve client/dist y /api. Un proxy autorizado termina TLS y reenvía el protocolo; TRUST_PROXY se limita a sus direcciones reales. No uses true, confianza irrestricta ni soluciones que desactiven las cookies Secure.
 
-- Aplicación local de un usuario, sin autenticación ni autorización multiusuario.
-- No publicada en internet; no se contrató alojamiento ni se cambiaron red/firewall.
-- El navegador puede eliminar su caché por falta de espacio; hay que volver a abrir con conexión para prepararla.
-- El backend debe estar disponible para todos los datos actuales y escrituras.
-- No hay push, edición offline, colas de sincronización ni sincronización multiusuario.
-- No se comprobó instalación física en Android, iOS o tablets reales.
-- Fase 7 pendiente de revisión: alojamiento, HTTPS público, autenticación, acceso remoto y controles de seguridad.
+Dockerfile construye el frontend, instala solo dependencias productivas del servidor y ejecuta como usuario node. .dockerignore excluye entornos, bases, respaldos y archivos de desarrollo. Los volúmenes son /data y /backups. El endpoint /api/health funciona para supervisión interna; el resto de producción exige HTTPS.
 
-No se crearon commits ni se hizo push.
+Preparación local de imagen, solo si tienes Docker:
 
+```powershell
+docker build -t alira:0.7.0 .
+```
 
-### Resultados ejecutados de esta entrega
+Antes de iniciar producción, configura FRONTEND_ORIGIN, TRUST_PROXY, almacenamiento y propietario. Ejemplo de creación privada del propietario en un volumen nombrado:
 
-| Comprobación | Resultado |
+```powershell
+docker run --rm -it -e FRONTEND_ORIGIN=https://alira.tu-dominio -e TRUST_PROXY=loopback -v alira-data:/data -v alira-backups:/backups alira:0.7.0 npm run admin:create
+```
+
+Este comando no publica puertos. loopback solo es correcto si el proxy realmente llega por loopback; para el servicio real usa su IP/CIDR o red confiable explícita. No copies este valor sin validar la topología. Monta volúmenes nombrados o bind mounts persistentes; no dependas de volúmenes anónimos.
+
+Si alojas fuera de contenedor, compila client, instala dependencias de server, configura NODE_ENV=production, rutas absolutas persistentes y un supervisor que gestione reinicios y cierre SIGTERM. Mantén el puerto de Node accesible únicamente al proxy. No expongas /data, /backups o archivos .env mediante el servidor estático.
+
+### Railway evaluado, no contratado
+
+Consulta del 15/10/2026: Railway publica un plan Hobby de **USD 5/mes**, que incluye USD 5 de uso; el exceso se factura. También presenta Free/Trial con límites menores; no se asume que sean adecuados para disponibilidad y respaldos de esta aplicación. La tabla consultada indica hasta 5 GB de volumen para Hobby. Verifica nuevamente antes de elegir. Fuentes: [planes](https://docs.railway.com/pricing/plans) y [volúmenes](https://docs.railway.com/volumes).
+
+Railway exige prestar atención al montaje del volumen durante ejecución, no durante build/pre-deploy, y a permisos del usuario del contenedor. El Dockerfile corre sin root: antes de adoptarlo hay que resolver los permisos del volumen mediante un procedimiento aprobado; no se cambió a root automáticamente.
+
+Usar una instancia, DB_PATH sobre el volumen, dominio HTTPS y proxy verificado. La inicialización del propietario necesita acceso privado al entorno con el volumen montado, nunca un endpoint de reclamación público. La copia externa cifrada requiere un destino fuera del volumen principal.
+
+No se seleccionó definitivamente una plataforma, activó un plan ni contrató un servicio. Railway queda como candidato sujeto a costo, permisos, política de respaldo y aprobación del usuario.
+
+### Publicación y reversión
+
+Antes de autorizar publicación: elegir dominio/alojamiento, confirmar costo y persistencia, configurar proxy/TLS, crear propietario por terminal, probar cookies Secure, login/CSRF, descargas, dos dispositivos y restauración desde respaldo externo. Conserva una imagen/versionado anterior y una copia previa a cualquier migración.
+
+Para revertir código, utiliza una imagen compatible con el esquema actual. Para revertir datos, detén el servicio y restaura primero a un destino nuevo; revisa pérdida de cambios posteriores y solicita aprobación antes de reemplazar producción. No apliques automáticamente una imagen antigua a un esquema no compatible.
+
+## Archivos principales
+
+| Grupo | Archivos |
 |---|---|
-| Backend, npm.cmd test | 23/23 correctas |
-| Cliente, npm.cmd test | 22/22 correctas |
-| Regresión Playwright, npm.cmd run test:e2e | 14/14 correctas |
-| Producción PWA, npm.cmd run test:pwa | 10/10 correctas |
-| npm.cmd run lint | Correcto |
-| npm.cmd run build | Correcto; también compilado por test:pwa |
-| git diff --check | Sin errores |
+| Migración | server/src/db/migrations/005-security.sql y db/database.js |
+| Autenticación | services/passwords.js, authService.js y middleware/security.js |
+| API y producción | server/src/app.js, config.js e index.js |
+| Respaldos | services/backupService.js y scripts/backup.js, restore.js |
+| Alta privada | server/scripts/admin-create.js |
+| Interfaz | AuthGate.jsx, SecuritySettings.jsx, App.jsx, Header.jsx y auth.css |
+| Concurrencia | taskApi.js, useTasks.js, GoalsPage.jsx y DeleteTaskDialog.jsx |
+| Despliegue | Dockerfile, .dockerignore, .env.example y lockfiles |
+| Pruebas | server/tests/security.test.js, helpers/authenticated.js, client/e2e/security.spec.js y fixtures.js |
 
-Se revisaron capturas automatizadas y ausencia de desbordamiento en 360, 390, 768, 1024 y 1440 px. La actualización del Service Worker se verificó con dos versiones reales servidas por un servidor de prueba local. No se probó instalación física en Android/iOS ni publicación en internet. Las auditorías de instalación ejecutadas informaron cero vulnerabilidades en cliente y servidor.
+Se conservan shared/tasks.js, shared/calendar.js, calendarios, cálculos de estadísticas, reportes y módulos funcionales previos. Las pruebas existentes se adaptaron para utilizar autenticación real, no un bypass de seguridad.
+
+## Pruebas y limitaciones verificadas
+
+En server: npm.cmd test.
+En client: npm.cmd test, npm.cmd run lint, npm.cmd run build, npm.cmd run test:e2e y npm.cmd run test:pwa.
+
+| Comprobación | Resultado ejecutado |
+|---|---|
+| Backend | 36/36 correctas |
+| Cliente | 22/22 correctas |
+| Navegador, regresión y seguridad | 17/17 correctas |
+| Producción PWA | 10/10 correctas |
+| Lint y build | Correctos |
+| SQLite principal | No vaciada ni restaurada |
+| Contraseñas, cookies y CSRF | Probados con credenciales de fixtures privadas y temporales |
+| Reinicio y restauración | Proceso real y archivo temporal verificados |
+
+Las bases de pruebas son temporales o en memoria; no usan ni vacían la base personal. Los puertos son 3011/5174 para E2E y 3012/5175 para PWA. La prueba de actualización utiliza otro servidor temporal.
+
+No hay Docker instalado en este entorno: **no se ejecutó docker build ni un contenedor**. La entrega productiva de Express y cabeceras se comprobó mediante pruebas HTTP con protocolo reenviado controlado; no equivale a validar un proxy público o certificado TLS real. Tampoco se verificaron instalaciones físicas Android/iOS.
+
+No se realizó una auditoría externa o pentest. Quedan controles operativos antes de publicar: TLS/proxy reales, permisos y restauración del volumen, copia cifrada externa, monitorización de espacio, costo, disponibilidad y pruebas desde dispositivos físicos. MFA, recuperación de cuenta y notificaciones push son mejoras opcionales posteriores.
+
+No se publicará ni se contratarán servicios sin autorización explícita. No se crearon commits ni se hizo push.

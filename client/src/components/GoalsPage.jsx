@@ -12,14 +12,15 @@ export default function GoalsPage({today,tasks,demo,connected}) {
       .catch(failure=>{if(!controller.signal.aborted){setError(failure.message);setLoading(false)}})
     return ()=>controller.abort()
   },[tasks,demo,revision,connected])
+  useEffect(()=>{const refresh=()=>setRevision(n=>n+1);const timer=setInterval(refresh,10000);window.addEventListener('focus',refresh);window.addEventListener('online',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh)}},[])
   async function save(values,id){
     if (!connected) throw new Error('Reconecta con el backend para guardar metas.')
-    const result=id?await taskApi.updateGoal(id,values):await taskApi.createGoal(values)
+    const result=id?await taskApi.updateGoal(id,values,editor?.goal?.version):await taskApi.createGoal(values)
     setGoals(current=>id?current.map(g=>g.id===id?result:g):[result,...current])
   }
   async function toggle(goal){
     setBusy(true);setError('')
-    try{const result=await taskApi.toggleGoal(goal.id,!goal.activa);setGoals(current=>current.map(g=>g.id===goal.id?result:g))}catch(failure){setError(failure.message)}finally{setBusy(false)}
+    try{const result=await taskApi.toggleGoal(goal.id,!goal.activa,goal.version);setGoals(current=>current.map(g=>g.id===goal.id?result:g))}catch(failure){setError(failure.message)}finally{setBusy(false)}
   }
   if(demo)return <section className="panel statistics-page"><h2>Objetivos personales</h2><p className="calendar-empty">Las metas usan exclusivamente finalizaciones reales de SQLite. Sal del modo demo para configurarlas.</p></section>
   return <section className="goals-page"><div className="statistics-heading"><div><span className="eyebrow">AVANZA A TU RITMO</span><h2>Mis objetivos</h2><p>Metas independientes de tus tareas, con progreso verificable.</p></div><button className="primary-button" disabled={!connected || loading || busy} onClick={()=>setEditor({goal:null})}>Nueva meta</button></div>

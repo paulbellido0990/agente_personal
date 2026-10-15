@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { spawn } from 'node:child_process'
 import { openDatabase } from '../src/db/database.js'
-import { createApp } from '../src/app.js'
+import { createApp, authenticatedFetch as fetch } from './helpers/authenticated.js'
 const input = { titulo: 'Preparar informe', descripcion: 'Revisar fuentes', categoria: 'Estudio', prioridad: 'alta', estado: 'pendiente', fechaLimite: '2026-10-15' }
 async function fixture(t, file = false) {
   const root = file ? mkdtempSync(join(tmpdir(), 'alira-api-test-')) : null
@@ -129,7 +129,7 @@ test('proceso real inicia, se detiene y reinicia conservando SQLite', async t =>
   })
   async function run() {
     // Puerto efímero de prueba, sin afectar el servidor personal.
-    const child = spawn(process.execPath, ['--input-type=module', '-e', "import { openDatabase } from './src/db/database.js'; import { createApp } from './src/app.js'; const db=openDatabase(process.env.ALIRA_TEST_DB); const server=createApp({db,now:()=>new Date('2026-10-14T18:00:00Z')}).listen(0,'127.0.0.1',()=>console.log(server.address().port));"], { cwd: new URL('../', import.meta.url), env: { ...process.env, ALIRA_TEST_DB: path }, stdio: ['ignore','pipe','pipe'] })
+    const child = spawn(process.execPath, ['--input-type=module', '-e', "import { openDatabase } from './src/db/database.js'; import { createApp } from './tests/helpers/authenticated.js'; const db=openDatabase(process.env.ALIRA_TEST_DB); const server=createApp({db,now:()=>new Date('2026-10-14T18:00:00Z')}).listen(0,'127.0.0.1',()=>console.log(server.address().port));"], { cwd: new URL('../', import.meta.url), env: { ...process.env, ALIRA_TEST_DB: path }, stdio: ['ignore','pipe','pipe'] })
     children.push(child)
     const port = await new Promise((resolve, reject) => {
       let output = ''

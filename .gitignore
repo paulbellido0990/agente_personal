@@ -12,3 +12,5 @@ dist/
 playwright-report/
 test-results/
 server/data/
+
+server/backups/

@@ -1,19 +1,32 @@
 const defaultUrl = '/api'
 export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) {
   const base = baseUrl.replace(/\/+$/, '')
-  async function request(path, { method = 'GET', body, signal, responseType, timeoutMs = 15000 } = {}) {
+  let csrfToken = ''
+  const versions = new Map()
+  const remember = (data, path) => {
+    const kind = path.startsWith('/goals') ? 'goals' : path.startsWith('/tasks') ? 'tasks' : null
+    if(kind) for(const item of Array.isArray(data) ? data : [data]) if(item?.id && item.version) versions.set(kind + '/' + item.id,item.version)
+    return data
+  }
+  const match = (kind,id,version) => ({'If-Match':'"' + (version ?? versions.get(kind + '/' + id) ?? 0) + '"'})
+  async function request(path, { method = 'GET', body, signal, responseType, timeoutMs = 15000, headers = {} } = {}) {
     try {
       const response = await fetcher(base + path, {
-        method, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs), headers: body ? { 'Content-Type': 'application/json' } : {},
+        method, credentials: 'include', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs), headers: { ...(body ? {'Content-Type':'application/json'} : {}), ...(!['GET','HEAD'].includes(method) ? {'X-CSRF-Token':csrfToken,'X-Alira-Request':'1'} : {}), ...headers },
         ...(body ? { body: JSON.stringify(body) } : {}),
       })
       if (response.status === 204) return null
       if (response.ok && responseType === 'blob') return response.blob()
       let json
       try { json = await response.json() } catch { throw new Error('La API no devolvió JSON válido. Revisa la dirección configurada.') }
-      if (!response.ok) throw new Error(json.error?.message || 'El servidor rechazó la operación.')
+      if (!response.ok) {
+        const error = new Error(json.error?.message || 'El servidor rechazó la operación.')
+        error.status = response.status
+        if(response.status === 401 && !path.startsWith('/auth/') && globalThis.window) window.dispatchEvent(new Event('alira-session-expired'))
+        throw error
+      }
       if (!Object.hasOwn(json, 'data')) throw new Error('La respuesta del servidor no tiene el formato esperado.')
-      return json.data
+      return remember(json.data,path)
     } catch (error) {
       if (error.name === 'AbortError') throw error
       if (error instanceof TypeError || error.name === 'TimeoutError') throw new Error('No se pudo confirmar la operación. Comprueba que el backend esté iniciado y revisa la conexión; actualiza el listado antes de reintentar.')
@@ -21,21 +34,28 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
     }
   }
   return {
+    clearSession: () => {csrfToken='';versions.clear()},
+    authSession: async signal => {const data=await request('/auth/session',{signal});csrfToken=data.csrfToken||'';return data},
+    login: async body => {const data=await request('/auth/login',{method:'POST',body});csrfToken=data.csrfToken;return data},
+    logout: async () => {await request('/auth/logout',{method:'POST',body:{}});csrfToken='';versions.clear()},
+    changePassword: body => request('/auth/password',{method:'POST',body}),
+    settings: () => request('/settings'),
+    backup: currentPassword => request('/settings/backup',{method:'POST',body:{currentPassword},responseType:'blob',timeoutMs:60000}),
     health: signal => request('/health', {signal}),
     statistics: (range,signal) => request('/statistics?' + new URLSearchParams(range),{signal}),
     goals: signal => request('/goals',{signal}),
     createGoal: body => request('/goals',{method:'POST',body}),
-    updateGoal: (id,body) => request('/goals/' + encodeURIComponent(id),{method:'PUT',body}),
-    toggleGoal: (id,activa) => request('/goals/' + encodeURIComponent(id) + '/active',{method:'PATCH',body:{activa}}),
+    updateGoal: (id,body,version) => request('/goals/' + encodeURIComponent(id),{method:'PUT',body,headers:match('goals',id,version)}),
+    toggleGoal: (id,activa,version) => request('/goals/' + encodeURIComponent(id) + '/active',{method:'PATCH',body:{activa},headers:match('goals',id,version)}),
     downloadReport: (range,revision,format) => request('/statistics/export.' + (format === 'csv' ? 'csv' : 'pdf') + '?' + new URLSearchParams({...range,revision}),{responseType:'blob'}),
     reminders: () => request('/reminders'),
     readReminder: id => request('/reminders/' + encodeURIComponent(id) + '/read', { method: 'PATCH', body: {} }),
     claimReminder: id => request('/reminders/' + encodeURIComponent(id) + '/claim', { method: 'POST', body: {} }),
     list: signal => request('/tasks', { signal }),
     create: (task, id) => request('/tasks', { method: 'POST', body: { ...task, id } }),
-    update: (id, task) => request('/tasks/' + encodeURIComponent(id), { method: 'PUT', body: task }),
-    status: (id, estado) => request('/tasks/' + encodeURIComponent(id) + '/status', { method: 'PATCH', body: { estado } }),
-    remove: id => request('/tasks/' + encodeURIComponent(id), { method: 'DELETE' }),
+    update: (id, task, version) => request('/tasks/' + encodeURIComponent(id), { method: 'PUT', body: task, headers:match('tasks',id,version) }),
+    status: (id, estado, version) => request('/tasks/' + encodeURIComponent(id) + '/status', { method: 'PATCH', body: { estado }, headers:match('tasks',id,version) }),
+    remove: (id,version) => request('/tasks/' + encodeURIComponent(id), { method: 'DELETE',headers:match('tasks',id,version) }),
     importTasks: tasks => request('/tasks/import', { method: 'POST', body: { tasks } }),
   }
 }

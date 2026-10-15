@@ -32,7 +32,7 @@ test('nueva versión espera confirmación, recarga y elimina solo la caché ante
    expect(await page.evaluate(async()=>(await caches.keys()).includes('alira-static-update1'))).toBe(true)
    await Promise.all([page.waitForEvent('domcontentloaded'),page.getByRole('button',{name:'Actualizar ALIRA',exact:true}).click()])
    await expect.poll(()=>page.evaluate(async()=>await caches.keys())).toContain('alira-static-update2')
-   await expect(page.getByRole('heading',{name:/Un día más cerca/})).toBeVisible()
+   await expect(page.getByRole('heading',{name:'Tu espacio para avanzar',exact:true})).toBeVisible()
    const keys=await page.evaluate(async()=>await caches.keys())
    expect(keys).not.toContain('alira-static-update1');expect(keys).toContain('cache-ajena')
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r))}

@@ -1,6 +1,6 @@
 {
   "name": "alira-server",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,7 +10,10 @@
     "start": "node --env-file-if-exists=.env src/index.js",
     "dev": "node --env-file-if-exists=.env --watch src/index.js",
     "test": "node --test tests/*.test.js",
-    "db:inspect": "node --env-file-if-exists=.env scripts/inspect-db.js"
+    "db:inspect": "node --env-file-if-exists=.env scripts/inspect-db.js",
+    "admin:create": "node --env-file-if-exists=.env scripts/admin-create.js",
+    "db:backup": "node --env-file-if-exists=.env scripts/backup.js",
+    "db:restore": "node --env-file-if-exists=.env scripts/restore.js"
   },
   "dependencies": {
     "express": "^5.1.0",

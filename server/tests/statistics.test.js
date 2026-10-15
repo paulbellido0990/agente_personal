@@ -12,7 +12,7 @@ import {calculateStatistics} from '../src/services/statisticsCalculator.js'
 import {createGoalService} from '../src/services/goalService.js'
 import {createStatisticsService} from '../src/services/statisticsService.js'
 import {createCsv,createPdf} from '../src/services/reportService.js'
-import {createApp} from '../src/app.js'
+import {createApp,authenticatedFetch as fetch} from './helpers/authenticated.js'
 import {localDay} from '../../shared/tasks.js'
 const now=new Date('2026-10-14T18:00:00Z')
 const input={titulo:'Informe verificable',descripcion:'Datos',categoria:'Estudio',prioridad:'alta',estado:'pendiente',fechaLimite:'2026-10-15'}
@@ -69,13 +69,13 @@ test('migración v2 a la versión actual conserva tareas y avisos; completedAt h
   old.exec("INSERT INTO reminder_events VALUES ('aviso','historica','2026-10-10',0,'2026-10-10','2026-10-10T15:00:00.000Z',NULL,NULL)")
   const before={...old.prepare('SELECT * FROM tasks').get()};old.close()
   let db=openDatabase(path)
-  assert.deepEqual({...db.prepare('SELECT * FROM tasks').get()},{...before,completedAt:null})
+  assert.deepEqual({...db.prepare('SELECT * FROM tasks').get()},{...before,completedAt:null,version:1})
   assert.equal(db.prepare('SELECT count(*) AS n FROM reminder_events').get().n,1)
   assert.equal(db.prepare("SELECT count(*) AS n FROM task_events WHERE kind='completed'").get().n,0)
   assert.equal(db.prepare("SELECT occurredAt FROM task_events WHERE kind='created'").get().occurredAt,before.createdAt)
   db.close();db=openDatabase(path)
   assert.equal(db.prepare('SELECT count(*) AS n FROM task_events').get().n,1)
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,4);db.close()
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,5);db.close()
 })
 test('finalización real, edición, reapertura e importación sin fechas falsas',()=>{
   const db=openDatabase(':memory:')

@@ -7,6 +7,7 @@ import TaskTable from './components/TaskTable'
 import CalendarCard from './components/CalendarCard'
 import ProgressCard from './components/ProgressCard'
 import PwaPanel from './components/PwaPanel'
+import SecuritySettings from './components/SecuritySettings'
 import TaskForm from './components/TaskForm'
 import DeleteTaskDialog from './components/DeleteTaskDialog'
 import ImportTasksDialog from './components/ImportTasksDialog'
@@ -23,7 +24,7 @@ import { DEMO_DATE } from './data/demo'
 
 const StatisticsPage = lazy(() => import('./components/StatisticsPage'))
 const GoalsPage = lazy(() => import('./components/GoalsPage'))
-export default function App() {
+export default function App({account,onLogout}) {
   const manager = useTasks()
   const realToday = useToday()
   const today = manager.demo ? DEMO_DATE : realToday
@@ -52,7 +53,7 @@ export default function App() {
     <div className="app-shell">
       <Sidebar view={view} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="workspace">
-        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} onReminders={showReminders} analytics={analytical} />
+        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} onReminders={showReminders} analytics={analytical} account={account} />
         <main id="contenido" tabIndex="-1">
           <div className="page-heading">
             <div>
@@ -135,6 +136,7 @@ export default function App() {
             </aside>
           </div>
           </>}
+          {view === 'configuracion' && <SecuritySettings account={account} onLogout={onLogout} connected={manager.connected}/>}
           {view !== 'configuracion' && <ReminderPanel reminders={reminders} demo={manager.demo} connected={manager.connected} onOpen={openTask} />}
           <footer className="page-footer">
             <span>ALIRA <span className="muted">· Gestor personal de tareas</span></span>
