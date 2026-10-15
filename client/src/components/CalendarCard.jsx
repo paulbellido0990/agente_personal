@@ -1,6 +1,21 @@
 import { CalendarDays } from 'lucide-react'
-import { tasks } from '../data/demo'
-export default function CalendarCard() {
-  const dueDays = new Set(tasks.filter(t => t.estado !== 'completada').map(t => Number(t.fechaLimite.slice(-2))))
-  return <section className="panel calendar-card" aria-labelledby="calendar-heading"><div className="panel-heading"><h2 id="calendar-heading">Octubre 2026</h2><CalendarDays size={18} className="muted" /></div><p className="eyebrow-note">Calendario de demostración</p><div className="calendar-grid" role="img" aria-label="Octubre de 2026. Fecha de ejemplo: 14. Entregas ficticias: 15, 16, 17 y 18.">{['L','M','M','J','V','S','D'].map((day, i) => <span className="weekday" key={'weekday' + i}>{day}</span>)}{Array.from({ length: 3 }, (_, i) => <span key={'blank' + i} />)}{Array.from({ length: 31 }, (_, i) => <span key={i} className={'calendar-day ' + (i + 1 === 14 ? 'selected-day ' : '') + (dueDays.has(i + 1) ? 'has-task' : '')}>{i + 1}</span>)}</div><div className="calendar-legend"><span className="legend-dot" /> Entrega de ejemplo<span className="legend-today">14</span> Fecha de demo</div><div className="calendar-bottom"><span className="date-square">15<small>OCT</small></span><div><strong>Un paso importante</strong><p>Informe de IA · ejemplo</p></div></div></section>
+import { formatDate } from '../services/tasks'
+export default function CalendarCard({ today }) {
+  const date = new Date(today + 'T12:00:00Z')
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth()
+  const first = new Date(Date.UTC(year, month, 1, 12))
+  const offset = (first.getUTCDay() + 6) % 7
+  const count = new Date(Date.UTC(year, month + 1, 0, 12)).getUTCDate()
+  const title = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
+  return <section className="panel calendar-card">
+    <div className="panel-heading"><h2>{title}</h2><CalendarDays size={18} className="muted" /></div>
+    <p className="eyebrow-note">Referencia del mes · America/Lima</p>
+    <div className="calendar-grid" role="img" aria-label={'Referencia del mes. Fecha de referencia: ' + formatDate(today) + '. No muestra tareas.'}>
+      {['L','M','M','J','V','S','D'].map((day, i) => <span className="weekday" key={'weekday' + i}>{day}</span>)}
+      {Array.from({ length: offset }, (_, i) => <span key={'blank' + i} />)}
+      {Array.from({ length: count }, (_, i) => <span key={i} className={'calendar-day ' + (i + 1 === date.getUTCDate() ? 'selected-day' : '')}>{i + 1}</span>)}
+    </div>
+    <p className="calendar-preview">Vista de tareas en calendario: próximamente. Consulta las entregas en Mis tareas.</p>
+  </section>
 }

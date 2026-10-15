@@ -10,14 +10,3 @@ export const tasks = [
   { id: 'demo-7', titulo: 'Completar lectura de investigación', descripcion: 'Resumir los conceptos principales', categoria: 'Estudio', prioridad: 'media', estado: 'completada', fechaLimite: '2026-10-12' },
   { id: 'demo-8', titulo: 'Planificar la semana', descripcion: 'Definir objetivos y espacios de descanso', categoria: 'Personal', prioridad: 'baja', estado: 'completada', fechaLimite: '2026-10-12' },
 ]
-export const statusLabels = { pendiente: 'Pendiente', en_progreso: 'En progreso', completada: 'Completada' }
-export const priorityLabels = { baja: 'Baja', media: 'Media', alta: 'Alta' }
-export const summary = {
-  total: tasks.length,
-  pendientes: tasks.filter(t => t.estado !== 'completada').length,
-  completadas: tasks.filter(t => t.estado === 'completada').length,
-  proximas: tasks.filter(t => t.estado !== 'completada' && t.fechaLimite >= DEMO_DATE && t.fechaLimite <= '2026-10-17').length,
-}
-export function formatDate(date) {
-  return new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', timeZone: 'America/Lima' }).format(new Date(date + 'T12:00:00-05:00'))
-}
