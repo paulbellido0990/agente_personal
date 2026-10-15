@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {taskApi} from '../services/taskApi'
-const empty={terms:[],courses:[],sessions:[],statistics:[],load:[],projects:[]}
+const empty={terms:[],courses:[],sessions:[],teachers:[],statistics:[],load:[],projects:[]}
 export default function useAcademic(demo){
  const [data,setData]=useState(empty),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false)
  const running=useRef(false)
@@ -25,5 +25,5 @@ export default function useAcademic(demo){
   catch(e){setError(e.message);return null}
   finally{running.current=false;setBusy(false)}
  }
- return {data:demo?empty:data,error:demo?'':error,loading:!demo&&loading,busy,refresh,save:(kind,body,record)=>mutate(()=>taskApi.saveAcademic(kind,body,record)),remove:record=>mutate(()=>taskApi.removeSession(record))}
+ return {data:demo?empty:data,error:demo?'':error,loading:!demo&&loading,busy,refresh,save:(kind,body,record)=>mutate(()=>taskApi.saveAcademic(kind,body,record)),remove:(record,kind)=>mutate(()=>taskApi.removeAcademic(record,kind))}
 }

@@ -1,7 +1,7 @@
 const defaultUrl = '/api'
 export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) {
   const base = baseUrl.replace(/\/+$/, '')
-  let csrfToken = ''
+  let csrfToken = '',currentAccount=null
   const versions = new Map()
   const remember = (data, path) => {
     const kind = path.startsWith('/goals') ? 'goals' : path.startsWith('/tasks') ? 'tasks' : null
@@ -33,16 +33,22 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
       throw error
     }
   }
+  const acceptAuth=data=>{if(currentAccount!==(data.account?.id||null))versions.clear();currentAccount=data.account?.id||null;csrfToken=data.csrfToken||'';return data}
   return {
-    clearSession: () => {csrfToken='';versions.clear()},
-    authSession: async signal => {const data=await request('/auth/session',{signal});csrfToken=data.csrfToken||'';return data},
-    login: async body => {const data=await request('/auth/login',{method:'POST',body});csrfToken=data.csrfToken;return data},
-    logout: async () => {await request('/auth/logout',{method:'POST',body:{}});csrfToken='';versions.clear()},
+    platform: (path,options={}) => request(path,options),
+    acceptInvitation: body => request('/auth/invitation',{method:'POST',body}),
+    notifications: () => request('/notifications'),
+    readNotification: event => request('/notifications/'+(event.type||'recordatorio')+'/'+encodeURIComponent(event.id)+'/read',{method:'PATCH',body:{}}),
+    clearSession: () => {csrfToken='';currentAccount=null;versions.clear()},
+    authSession: async signal => {const data=await request('/auth/session',{signal});return acceptAuth(data)},
+    login: async body => {const data=await request('/auth/login',{method:'POST',body});return acceptAuth(data)},
+    logout: async () => {await request('/auth/logout',{method:'POST',body:{}});csrfToken='';currentAccount=null;versions.clear()},
     changePassword: body => request('/auth/password',{method:'POST',body}),
     settings: () => request('/settings'),
     backup: currentPassword => request('/settings/backup',{method:'POST',body:{currentPassword},responseType:'blob',timeoutMs:60000}),
     academic: signal => request('/academic',{signal}),
     saveAcademic: (kind,body,record) => request('/academic/'+kind+(record?'/'+encodeURIComponent(record.id):''),{method:record?'PUT':'POST',body,headers:record?{'If-Match':'"'+record.version+'"'}:{}}),
+    removeAcademic: (record,kind='sessions') => request('/academic/'+kind+'/'+encodeURIComponent(record.id),{method:'DELETE',headers:{'If-Match':'"'+record.version+'"'}}),
     removeSession: record => request('/academic/sessions/'+encodeURIComponent(record.id),{method:'DELETE',headers:{'If-Match':'"'+record.version+'"'}}),
     health: signal => request('/health', {signal}),
     statistics: (range,signal) => request('/statistics?' + new URLSearchParams(range),{signal}),

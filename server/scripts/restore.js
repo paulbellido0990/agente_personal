@@ -15,11 +15,11 @@ let reserved=false
 try{
  if(original.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('La copia no supera la comprobación de integridad.')
  original.prepare('SELECT id FROM tasks LIMIT 1').all()
- if(original.prepare('PRAGMA user_version').get().user_version>6)throw new Error('La copia pertenece a una versión posterior.')
+ if(original.prepare('PRAGMA user_version').get().user_version>7)throw new Error('La copia pertenece a una versión posterior.')
  await mkdir(dirname(target),{recursive:true,mode:0o700})
  const handle=await open(target,'wx',0o600);await handle.close();reserved=true
  await backup(original,target)
  const restored=openDatabase(target)
- try{restored.exec('DELETE FROM sessions; DELETE FROM auth_attempts;');if(restored.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('No se pudo verificar la restauración.')}finally{restored.close()}
+ try{restored.exec('DELETE FROM sessions; DELETE FROM auth_attempts;');restored.prepare('UPDATE user_invitations SET usedAt=COALESCE(usedAt,?)').run(new Date().toISOString());if(restored.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('No se pudo verificar la restauración.')}finally{restored.close()}
  console.log('Restauración verificada en un archivo nuevo. La base principal no se modificó.')
 }catch(error){if(reserved)await rm(target,{force:true});throw error}finally{original.close()}

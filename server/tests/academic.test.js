@@ -124,7 +124,7 @@ test('migración v5 a v6 con respaldo WAL conserva tareas, propietario, sesiones
  const check=new DatabaseSync(copyPath,{readOnly:true});assert.equal(check.prepare('PRAGMA integrity_check').get().integrity_check,'ok');check.close();old.close()
  const db=openDatabase(path)
  try{
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,6)
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,7)
   for(const [table,rows]of Object.entries(before))assert.deepEqual(db.prepare('SELECT * FROM '+table).all().map(record=>Object.fromEntries(Object.keys(rows[0]||{}).map(k=>[k,record[k]]))),rows.map(r=>({...r})),table)
   assert.equal(db.prepare('SELECT count(*) n FROM reminder_events_legacy_v5').get().n,1)
   assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0)

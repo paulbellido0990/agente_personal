@@ -12,7 +12,7 @@ export async function createBackup(db,directory){
    await backup(db,partial)
    await chmod(partial,0o600)
    const copy=new DatabaseSync(partial)
-   try{if(copy.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('La copia no superó la verificación de integridad.');copy.prepare('DELETE FROM sessions').run();copy.prepare('DELETE FROM auth_attempts').run()}finally{copy.close()}
+   try{if(copy.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('La copia no superó la verificación de integridad.');copy.prepare('DELETE FROM sessions').run();copy.prepare('DELETE FROM auth_attempts').run();if(copy.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_invitations'").get())copy.prepare('UPDATE user_invitations SET usedAt=COALESCE(usedAt,?)').run(new Date().toISOString())}finally{copy.close()}
    await rename(partial,destination)
    return {name,path:destination}
  }catch(error){await rm(partial,{force:true});throw error}

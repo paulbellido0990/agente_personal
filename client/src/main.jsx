@@ -12,3 +12,4 @@ createRoot(document.getElementById('root')).render(<StrictMode><AuthGate /></Str
 
 import './styles/readability.css'
 import './styles/academic.css'
+import './styles/platform.css'

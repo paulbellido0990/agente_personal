@@ -5,7 +5,7 @@ import {createApp} from './app.js'
 import {createBackup} from './services/backupService.js'
 let db
 try{
- const config=getConfig();const migrationCopy=await prepareMigrationBackup(config.dbPath,config.backupDir);if(migrationCopy)console.log('Respaldo previo a la migración académica verificado.');db=openDatabase(config.dbPath)
+ const config=getConfig();const migrationCopy=await prepareMigrationBackup(config.dbPath,config.backupDir);if(migrationCopy)console.log('Respaldo previo a la migración verificado.');db=openDatabase(config.dbPath)
  if(!db.prepare('SELECT id FROM owner').get())console.log('Propietario pendiente: todos los datos están bloqueados. Configúralo desde una terminal privada.')
  const server=createApp({db,...config}).listen(config.port,config.host,()=>console.log('ALIRA iniciada en '+config.host+':'+config.port))
  let backingUp=false,timer

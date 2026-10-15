@@ -35,6 +35,7 @@ export default function Header({ query, setQuery, onMenu, demo, unread, reminder
         {reminders.error && <p role="alert">{reminders.error}</p>}
         <ul className="notification-list">{reminders.events.slice(0, 20).map(event => <li key={event.id} className={event.readAt ? 'is-read' : 'is-unread'}>
           <button className="reminder-open" onClick={() => { (onOpenReminder ? onOpenReminder(event) : onOpen(event.taskId)); setPanel(null) }}>{event.titulo}</button>
+          <small>{event.type==='anuncio'?'Anuncio':event.type==='mensaje'?'Mensaje':event.type==='soporte'?'Soporte':'Recordatorio'}</small>
           <span>{event.readAt ? 'Leído' : 'Sin leer'}</span>
           {event.createdAt && <time dateTime={event.createdAt}>{new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'short', timeStyle: 'short' }).format(new Date(event.createdAt))}</time>}
           {!event.readAt && <button disabled={!connected} className="secondary-button" onClick={() => reminders.markRead(event.id)}>Marcar leído</button>}

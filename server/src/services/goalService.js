@@ -11,36 +11,36 @@ function validate(body) {
   if(body.activa!==undefined&&typeof body.activa!=='boolean')throw new HttpError(400,'El estado activo debe ser verdadero o falso.')
   return {nombre:body.nombre.trim(),descripcion:body.descripcion?.trim()||'',fechaInicio:body.fechaInicio,fechaFin:body.fechaFin,objetivo:body.objetivo,activa:body.activa===false?0:1}
 }
-export function createGoalService(db,now=()=>new Date()) {
-  const get=id=>db.prepare('SELECT * FROM goals WHERE id=?').get(id)
+export function createGoalService(db,now=()=>new Date(),userId='1') {
+  const get=id=>db.prepare('SELECT * FROM goals WHERE id=? AND userId=?').get(id,userId)
   function find(id){const goal=get(id);if(!goal)throw new HttpError(404,'No se encontró la meta.');return goal}
   return {
     list() {
-      const events=db.prepare("SELECT * FROM task_events WHERE kind='completed' ORDER BY occurredAt,id").all()
-      const startedAt=db.prepare('SELECT startedAt FROM analytics_metadata WHERE id=1').get().startedAt
+      const events=db.prepare("SELECT * FROM task_events WHERE kind='completed' AND userId=? ORDER BY occurredAt,id").all(userId)
+      const startedAt=db.prepare('SELECT startedAt FROM user_analytics WHERE userId=?').get(userId).startedAt
       const today=localDay(now())
-      return db.prepare('SELECT * FROM goals ORDER BY fechaInicio DESC,createdAt DESC').all().map(goal=>{
+      return db.prepare('SELECT * FROM goals WHERE userId=? ORDER BY fechaInicio DESC,createdAt DESC').all(userId).map(goal=>{
         const completed=uniqueCompletions(events,goal.fechaInicio,goal.fechaFin).length
         return {...goal,activa:!!goal.activa,completed,percent:Math.min(100,Math.round(completed/goal.objetivo*100)),historyPartial:goal.fechaInicio<=localDay(new Date(startedAt)),phase:!goal.activa?'Desactivada':goal.fechaFin<today?'Finalizada':goal.fechaInicio>today?'Próxima':'En curso'}
       })
     },
     create(body) {
       const goal=validate(body),id=randomUUID(),stamp=now().toISOString()
-      db.prepare('INSERT INTO goals (id,nombre,descripcion,fechaInicio,fechaFin,objetivo,activa,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)')
-        .run(id,goal.nombre,goal.descripcion,goal.fechaInicio,goal.fechaFin,goal.objetivo,goal.activa,stamp,stamp)
+      db.prepare('INSERT INTO goals (id,nombre,descripcion,fechaInicio,fechaFin,objetivo,activa,createdAt,updatedAt,userId) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        .run(id,goal.nombre,goal.descripcion,goal.fechaInicio,goal.fechaFin,goal.objetivo,goal.activa,stamp,stamp,userId)
       return this.list().find(g=>g.id===id)
     },
     update(id,body) {
       find(id)
       const goal=validate(body)
-      db.prepare('UPDATE goals SET nombre=?,descripcion=?,fechaInicio=?,fechaFin=?,objetivo=?,activa=?,updatedAt=? WHERE id=?')
-        .run(goal.nombre,goal.descripcion,goal.fechaInicio,goal.fechaFin,goal.objetivo,goal.activa,now().toISOString(),id)
+      db.prepare('UPDATE goals SET nombre=?,descripcion=?,fechaInicio=?,fechaFin=?,objetivo=?,activa=?,updatedAt=? WHERE id=? AND userId=?')
+        .run(goal.nombre,goal.descripcion,goal.fechaInicio,goal.fechaFin,goal.objetivo,goal.activa,now().toISOString(),id,userId)
       return this.list().find(g=>g.id===id)
     },
     toggle(id,body) {
       find(id)
       if(!body||Object.keys(body).length!==1||typeof body.activa!=='boolean')throw new HttpError(400,'Envía únicamente activa como booleano.')
-      db.prepare('UPDATE goals SET activa=?,updatedAt=? WHERE id=?').run(body.activa?1:0,now().toISOString(),id)
+      db.prepare('UPDATE goals SET activa=?,updatedAt=? WHERE id=? AND userId=?').run(body.activa?1:0,now().toISOString(),id,userId)
       return this.list().find(g=>g.id===id)
     },
   }

@@ -3,8 +3,8 @@ import { createStatisticsService } from '../services/statisticsService.js'
 import { createGoalService } from '../services/goalService.js'
 import { createCsv,createPdf } from '../services/reportService.js'
 import { HttpError } from '../errors.js'
-export function statisticsRoutes(db,now) {
-  const router=Router(),stats=createStatisticsService(db,now),goals=createGoalService(db,now)
+export function statisticsRoutes(db,now,userId='1') {
+  const router=Router(),stats=createStatisticsService(db,now,userId),goals=createGoalService(db,now,userId)
   router.get('/statistics',(req,res)=>res.json({data:stats.report(req.query)}))
   for(const format of ['csv','pdf'])router.get('/statistics/export.'+format,async(req,res)=>{
     const {revision,...query}=req.query

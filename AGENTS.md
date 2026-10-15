@@ -8,8 +8,8 @@
 - **Subtítulo:** Gestor personal de tareas académicas y personales.
 - **Eslogan:** Organiza. Avanza. Logra.
 - **Idioma:** español (Perú). Zona horaria: America/Lima.
-- **Decisión definitiva:** ALIRA no utiliza inteligencia artificial, chat, modelos de lenguaje ni servicios externos de inferencia. No reintroducirlos ni solicitar claves API.
-- **Fase actual:** 8, optimización de interfaz y gestión académica, conservando seguridad, PWA y alcance sin IA.
+- **Decisión definitiva:** ALIRA no utiliza inteligencia artificial, chat de IA, modelos de lenguaje ni servicios externos de inferencia. No reintroducirlos ni solicitar claves API.
+- **Fase actual:** 9, plataforma multiusuario privada, ALIRA Control, anuncios, mensajería, soporte y compartición, sin IA.
 - **Publicación:** requiere autorización expresa. No contratar planes, activar cargos ni desplegar automáticamente.
 
 ALIRA permite crear, editar, completar y eliminar tareas mediante formularios, botones y calendarios. Conserva planificación, recordatorios, estadísticas, objetivos y reportes. La PWA es una aplicación web instalable, no una aplicación nativa publicada en tiendas.
@@ -117,16 +117,16 @@ Mantener README actualizado con comandos disponibles, variables, endpoints, migr
 
 ## Seguridad y publicación — Fase 7
 
-- Un solo propietario, creado únicamente mediante npm.cmd run admin:create en una terminal privada. No hay registro público, credenciales por defecto ni configuración inicial abierta por HTTP.
+- Un administrador principal creado únicamente mediante npm.cmd run admin:create en terminal privada. Las otras cuentas requieren invitación administrativa. No hay registro libre, credenciales por defecto ni configuración inicial abierta por HTTP.
 - Contraseñas con scrypt asíncrono N=131072, r=8, p=1, sal aleatoria y comparación constante. Mínimo 12, máximo 128 caracteres. No registrar credenciales ni pasarlas como argumentos del shell.
 - Sesiones persistentes en SQLite: token aleatorio de 256 bits; guardar únicamente su SHA-256. Cookies HttpOnly y SameSite=Strict; Secure y prefijo __Host- en producción.
 - Expiración absoluta configurable (predeterminado 168 horas). Logout revoca la sesión; cambiar contraseña revoca todas. Mantener límites de intentos y solicitudes.
-- Todas las rutas de datos exigen autenticación de backend, incluyendo importación, recordatorios y descargas. Solo salud, estado de sesión e inicio de sesión son públicos. CORS no reemplaza autenticación.
+- Todas las rutas de datos exigen autenticación de backend, incluyendo importación, recordatorios y descargas. Salud, estado de sesión e inicio de sesión son públicos; la activación de invitación solo admite un código administrativo válido. CORS no reemplaza autenticación.
 - Escrituras autenticadas requieren X-CSRF-Token; el login requiere JSON y X-Alira-Request. Rechazar orígenes ajenos y solicitudes cross-site. No cachear cookies, tokens ni respuestas privadas.
 - Mantener CSP compatible, HSTS en producción, bloqueo de marcos y cabeceras de seguridad. No desactivar HTTPS para resolver un despliegue.
 - Configuración productiva debe declarar origen HTTPS, rutas absolutas de volúmenes y redes TRUST_PROXY; nunca confiar indiscriminadamente en encabezados reenviados.
 - Producción sirve client/dist y /api desde el mismo origen. Usar VITE_API_URL=/api; una sola instancia con volumen SQLite persistente.
-- Migración 005: owner, sessions, auth_attempts y versiones de tareas/metas. No borrar ni modificar retrospectivamente el contenido histórico. Mantener versiones 1 a 6 incrementales/transaccionales.
+- Migración 005: owner, sessions, auth_attempts y versiones de tareas/metas. No borrar ni modificar retrospectivamente el contenido histórico. Mantener versiones 1 a 7 incrementales/transaccionales.
 - PUT/PATCH/DELETE de tareas y metas requieren If-Match con la versión leída. Validación y escritura comparten transacción; confirmar la respuesta después de COMMIT. No actualizar silenciosamente la versión de un formulario abierto.
 - La caché PWA contiene solo recursos estáticos. El dashboard se monta después de verificar la sesión. Al salir, desmontar datos de memoria y notificar a otras pestañas. Una recarga offline no acredita una sesión.
 - Respaldos con sqlite.backup, no copia simple del archivo WAL activo. Verificar integridad y retirar sesiones de la copia. Descargar exige sesión, CSRF y contraseña actual.
@@ -148,3 +148,24 @@ Mantener README actualizado con comandos disponibles, variables, endpoints, migr
 - Reutilizar la campana, el servicio de avisos y las notificaciones del navegador existentes; no añadir sistemas paralelos ni prometer push remoto.
 - Escala tipográfica en rem y tamaños legibles. Mantener filtros por ámbito, calendario integrado y vistas responsive con desplazamiento interno del horario.
 - La documentación de uso, API, modelo y límites está en docs/FASE8.md.
+
+## Ampliación — Fase 9
+
+- Alcance actual: plataforma multiusuario, ALIRA Personal y ALIRA Control; nunca IA.
+- Mantener al propietario original como administrador principal id lógico 1. Solo él accede a /api/control y respaldos completos.
+- Las otras cuentas son usuarios creados por invitación administrativa, sin credenciales predeterminadas, registro libre ni cambios de rol por HTTP.
+- users autoriza identidad, rol y estado. owner y sessions.ownerId son compatibilidad histórica; sessions.userId identifica la cuenta real. No crear otra tabla de sesiones.
+- El ID propietario se obtiene exclusivamente de la sesión. Todos los repositorios, servicios, relaciones, reportes y avisos personales deben filtrar por userId, también para administradores.
+- No admitir userId del navegador como autoridad. Comprobar aislamiento con dos cuentas, IDs ajenos, importaciones, relaciones académicas, metas, estadísticas, CSV/PDF y recordatorios.
+- No dar al administrador acceso automático al contenido privado individual. Su panel muestra agregados y comunicaciones dirigidas explícitamente a administración.
+- Docentes son un catálogo por cuenta. Sesiones usan teacherId; conservar textos ambiguos anteriores para revisión, sin convertirlos en identidades inventadas.
+- Los anuncios necesitan publicación vigente y destinatario elegible. Conservar recibos sin duplicados; proteger borradores y anuncios ajenos.
+- Mensajes y soporte solo para participantes autorizados. Actualización HTTP periódica, sin reintroducir chats de IA ni conversaciones históricas inactivas.
+- Compartición privada por defecto, explícita por recurso y en lectura. Solo el propietario autoriza/revoca; no compartir automáticamente tareas, hitos o cursos relacionados.
+- Auditoría administrativa sin secretos ni cuerpos privados. No registrar pulsaciones ni navegación detallada. Mantener política de conservación visible y documentada.
+- Esquema 7 con 007-platform.sql, respaldo consistente previo y comprobación de integridad/FK antes de confirmar. No reinicializar ni perder cuentas, sesiones o datos.
+- La suspensión de FK se limita a la conexión aislada de migración de SQLite, seguida de foreign_key_check y reactivación. Las peticiones normales usan foreign_keys=ON.
+- Respaldos normales/restauración invalidan sesiones e invitaciones; copias previas a migración conservan acceso y son privadas.
+- Conservar cookies, CSRF, límites, hashes y HTTPS. Los formularios versionados conservan su versión inicial y rechazan sobrescrituras silenciosas.
+- Al cambiar de cuenta desmontar datos React y limpiar versiones/CSRF. localStorage legado sin propietario solo se ofrece al principal original.
+- La guía de operación, privacidad, endpoints y límites está en docs/FASE9.md. No publicar, contratar, crear commits ni push sin petición.

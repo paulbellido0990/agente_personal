@@ -135,7 +135,7 @@ test('respaldo WAL activo y restauración temporal íntegra sin sesiones reutili
   assert.equal(restored.prepare('SELECT titulo FROM tasks WHERE id=?').get(task.id).titulo,input.titulo)
   assert.equal(restored.prepare('SELECT count(*) n FROM owner').get().n,1)
   assert.equal(restored.prepare('SELECT count(*) n FROM sessions').get().n,0)
-  assert.equal(restored.prepare('PRAGMA user_version').get().user_version,6)
+  assert.equal(restored.prepare('PRAGMA user_version').get().user_version,7)
  }finally{restored.close()}
  assert.equal(f.db.prepare('SELECT count(*) n FROM sessions').get().n,1)
 })

@@ -11,6 +11,12 @@ import SecuritySettings from './components/SecuritySettings'
 import TaskForm from './components/TaskForm'
 import DeleteTaskDialog from './components/DeleteTaskDialog'
 import ImportTasksDialog from './components/ImportTasksDialog'
+import useRemote from './hooks/useRemote'
+import AnnouncementCards from './components/AnnouncementCards'
+import CommunicationsPage from './components/CommunicationsPage'
+import SharesPage from './components/SharesPage'
+import ControlPage from './components/ControlPage'
+import {taskApi} from './services/taskApi'
 import useAcademic from './hooks/useAcademic'
 import AcademicPage from './components/AcademicPage'
 import AcademicSchedule from './components/AcademicSchedule'
@@ -28,7 +34,8 @@ import { DEMO_DATE } from './data/demo'
 const StatisticsPage = lazy(() => import('./components/StatisticsPage'))
 const GoalsPage = lazy(() => import('./components/GoalsPage'))
 export default function App({account,onLogout}) {
-  const manager = useTasks()
+  const manager = useTasks(account.id)
+  const communications = useRemote('/communications',!manager.demo)
   const academic = useAcademic(manager.demo)
   const [scope, setScope] = useState('')
   const [academicLanding,setAcademicLanding] = useState('terms')
@@ -44,7 +51,7 @@ export default function App({account,onLogout}) {
   const [view, setView] = useState('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const analytical = view === 'estadisticas' || view === 'objetivos' || view === 'recordatorios' || view === 'configuracion' || view === 'academico'
+  const analytical = view === 'estadisticas' || view === 'objetivos' || view === 'recordatorios' || view === 'configuracion' || view === 'academico' || view === 'comunicaciones' || view === 'compartir' || view === 'control'
   const create = initialDate => setEditor({ task: null, initialDate: typeof initialDate === 'string' ? initialDate : null })
   const disabled = manager.busy || (!manager.demo && (manager.loading || !manager.connected))
   const detailedTask = manager.tasks.find(task => task.id === detailsId)
@@ -57,20 +64,20 @@ export default function App({account,onLogout}) {
 
   const createAcademic = initialAcademic => setEditor({task:null,initialAcademic})
   const showSchedule = () => { setAcademicLanding('sessions'); setView('academico'); setMenuOpen(false) }
-  const openReminder = event => { if(event.sessionId) showSchedule(); else openTask(event.taskId) }
+  const openReminder = event => { if(event.type && event.type!=='recordatorio'){navigate('comunicaciones');return} if(event.sessionId) showSchedule(); else openTask(event.taskId) }
   const navigate = value => { if(value==='academico')setAcademicLanding('terms');setView(value); setMenuOpen(false) }
 
   return <>
     <a className="skip-link" href="#contenido">Saltar al contenido</a>
     <div className="app-shell">
-      <Sidebar view={view} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <Sidebar account={account} view={view} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="workspace">
         <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} reminders={reminders} connected={manager.connected} onOpen={id => openTask(id)} onOpenReminder={openReminder} onNavigate={navigate} analytics={analytical && view !== 'academico'} account={account} />
         <main id="contenido" tabIndex="-1">
           <div className="page-heading">
             <div>
               <span className="eyebrow">TU ESPACIO PARA AVANZAR</span>
-              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : view === 'recordatorios' ? 'Tus entregas, a tiempo' : view === 'academico' ? 'Tu semestre, organizado' : view === 'configuracion' ? 'ALIRA a tu manera' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
+              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : view === 'recordatorios' ? 'Tus entregas, a tiempo' : view === 'academico' ? 'Tu semestre, organizado' : view === 'control' ? 'ALIRA Control' : view === 'comunicaciones' ? 'Un espacio para comunicarte' : view === 'compartir' ? 'Comparte con tu autorización' : view === 'configuracion' ? 'ALIRA a tu manera' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
               <p>Organiza tus ideas, enfócate en lo importante y celebra cada avance.</p>
             </div>
             <span className="date-chip"><CalendarDays size={16} />{formatDate(today)} {manager.demo && <small>Demo</small>}</span>
@@ -86,7 +93,7 @@ export default function App({account,onLogout}) {
               {manager.demo ? 'Volver a mis tareas' : 'Explorar demo'}
             </button>
           </div>
-          <PwaPanel settings={view === 'configuracion'} busy={manager.busy || !!editor || !!deleting || importing || view === 'academico'} />
+          <PwaPanel settings={view === 'configuracion'} busy={manager.busy || !!editor || !!deleting || importing || ['academico','control','comunicaciones','compartir'].includes(view)} />
           {!manager.demo && !manager.connected && !manager.loading && <p className="storage-warning" role="status">Sin conexión con el backend. La información visible puede estar desactualizada. Crear o modificar tareas requiere conexión; no hay guardado offline. Se reintentará automáticamente.</p>}
           {!manager.demo && manager.warning && <p className="storage-warning" role="alert">{manager.warning}</p>}
           {manager.notice && <div className={'notice ' + manager.notice.type} role={manager.notice.type === 'error' ? 'alert' : 'status'}>
@@ -109,6 +116,7 @@ export default function App({account,onLogout}) {
             {view === 'estadisticas' && <StatisticsPage academic={academic.data} onAcademic={() => navigate('academico')} today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected} onGoals={() => navigate('objetivos')}/>}
             {view === 'objetivos' && <GoalsPage today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected}/>}
           </Suspense>
+          {view === 'inicio' && !manager.demo && <AnnouncementCards compact announcements={communications.data?.announcements} onOpen={()=>navigate('comunicaciones')} onRead={async id=>{try{await taskApi.platform('/notifications/anuncio/'+id+'/read',{method:'PATCH',body:{}});communications.refresh();reminders.refresh()}catch{communications.refresh()}}}/>}
           {!analytical && <>
           {manager.demo || manager.connected || manager.tasks.length > 0
             ? <div aria-busy={!manager.demo && manager.loading}><SummaryCards summary={summary} /></div>
@@ -151,6 +159,9 @@ export default function App({account,onLogout}) {
           </div>
           </>}
           {view === 'academico' && <AcademicPage key={academicLanding} initialSection={academicLanding} academic={academic} tasks={manager.tasks} today={today} disabled={disabled} demo={manager.demo} query={query} onCreate={createAcademic} onEdit={task=>setEditor({task})} onDelete={setDeleting} onStatus={changeStatus} />}
+          {view === 'comunicaciones' && <CommunicationsPage resource={communications} account={account} connected={manager.connected} onChanged={reminders.refresh}/>}
+          {view === 'compartir' && <SharesPage account={account} connected={manager.connected}/>}
+          {view === 'control' && account.id==='1' && account.role==='administrador' && <ControlPage account={account} connected={manager.connected} onLogout={onLogout} communications={communications} onChanged={()=>{communications.refresh();reminders.refresh()}}/>}
           {view === 'configuracion' && <SecuritySettings account={account} onLogout={onLogout} connected={manager.connected}/>}
           {view !== 'configuracion' && <ReminderPanel reminders={reminders} demo={manager.demo} connected={manager.connected} onOpen={openTask} onOpenReminder={openReminder} />}
           <footer className="page-footer">

@@ -4,8 +4,8 @@ import { taskApi, taskPayload, importInBatches } from '../services/taskApi'
 import { buildTask } from '../services/tasks'
 import { tasks as demoTasks } from '../data/demo'
 
-export default function useTasks() {
-  const [local] = useState(() => taskStorage.read())
+export default function useTasks(accountId='1') {
+  const [local] = useState(() => accountId==='1'?taskStorage.read():{tasks:[],warning:''})
   const [realTasks, setRealTasks] = useState([])
   const [demo, setDemo] = useState(false)
   const [examples, setExamples] = useState(() => demoTasks.map(t => ({ ...t, createdAt: '2026-10-14T15:00:00.000Z', updatedAt: '2026-10-14T15:00:00.000Z' })))

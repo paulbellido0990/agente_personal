@@ -1,4 +1,6 @@
 import express from 'express'
+import {platformRoutes} from './routes/platform.js'
+import {requireAdmin} from './services/platformValidation.js'
 import {academicRoutes} from './routes/academic.js'
 import {join} from 'node:path'
 import {statisticsRoutes} from './routes/statistics.js'
@@ -34,6 +36,7 @@ export function createApp({db,origin='http://localhost:5173',now,production=fals
    if(req.headers['x-alira-request']!=='1')return next(new HttpError(403,'Solicitud de acceso no válida.'))
    next()
  },express.json({limit:'4kb',strict:true}),async(req,res)=>res.json({data:await auth.login(req,res)}))
+ app.post('/api/auth/invitation',(req,_res,next)=>{if(req.headers['x-alira-request']!=='1')return next(new HttpError(403,'Solicitud no válida.'));next()},express.json({limit:'4kb',strict:true}),async(req,res)=>res.json({data:await auth.acceptInvitation(req)}))
  app.use('/api',auth.require)
  app.use('/api',(req,_res,next)=>{try{auth.limit('api:'+req.auth.tokenHash,600,60000);next()}catch(e){next(e)}})
  app.use('/api',auth.protect)
@@ -44,21 +47,32 @@ export function createApp({db,origin='http://localhost:5173',now,production=fals
  app.use('/api',express.json({limit:'1mb',strict:true}))
  app.post('/api/auth/logout',(req,res)=>{auth.logout(req,res);res.status(204).end()})
  app.post('/api/auth/password',async(req,res)=>res.json({data:await auth.changePassword(req,res)}))
- app.get('/api/settings',(_req,res)=>res.json({data:{version:'0.8.0',storage:'SQLite centralizada',backup:'Descarga protegida; las copias contienen datos privados y el hash de acceso.'}}))
- app.post('/api/settings/backup',async(req,res)=>{
+ app.get('/api/settings',(_req,res)=>res.json({data:{version:'0.9.0',storage:'SQLite centralizada',backup:'Descarga protegida; las copias contienen datos privados y el hash de acceso.'}}))
+ app.post('/api/settings/backup',requireAdmin,async(req,res)=>{
    if(!req.body||Object.keys(req.body).some(k=>k!=='currentPassword'))throw new HttpError(400,'Datos de respaldo no válidos.')
    await auth.reauthenticate(req,req.body.currentPassword)
    const result=await downloadableBackup(db)
+   db.prepare('INSERT INTO admin_audit_log VALUES(?,?,?,?,?)').run(crypto.randomUUID(),req.auth.userId,'respaldo.generado',null,new Date().toISOString())
    res.download(result.path,result.name,error=>{
      result.cleanup().catch(()=>console.error('No se pudo limpiar un respaldo temporal.'))
      if(error&&!res.headersSent)res.status(500).json({error:{message:'No se pudo descargar el respaldo.'}})
    })
  })
- app.use('/api',conditionalWrite(db))
- app.use('/api/academic',academicRoutes(db,now))
- app.use('/api',statisticsRoutes(db,now))
- app.use('/api/reminders',reminderRoutes(db,now))
- app.use('/api/tasks',taskRoutes(createTaskService(createTaskRepository(db))))
+ app.use('/api',platformRoutes(db,auth,now))
+ const personalRouters=new Map()
+ app.use('/api',(req,res,next)=>{
+  const userId=req.auth.userId
+  if(!personalRouters.has(userId)){
+   const router=express.Router()
+   router.use(conditionalWrite(db))
+   router.use('/academic',academicRoutes(db,now,userId))
+   router.use(statisticsRoutes(db,now,userId))
+   router.use('/reminders',reminderRoutes(db,now,userId))
+   router.use('/tasks',taskRoutes(createTaskService(createTaskRepository(db,userId))))
+   personalRouters.set(userId,router)
+  }
+  return personalRouters.get(userId)(req,res,next)
+ })
  app.use('/api',(_req,_res,next)=>next(new HttpError(404,'La ruta solicitada no existe.')))
  if(staticDir){
    app.use(express.static(staticDir,{index:false,dotfiles:'deny',setHeaders(res,path){

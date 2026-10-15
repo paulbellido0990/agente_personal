@@ -11,10 +11,10 @@ export async function prepareMigrationBackup(path,directory){
  let destination,reserved=false
  try{
   const version=source.prepare('PRAGMA user_version').get().user_version
-  if(version>=6||version===0)return null
+  if(version>=7||version===0)return null
   if(source.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('La base no supera la comprobación de integridad.')
   await mkdir(directory,{recursive:true,mode:0o700})
-  destination=join(directory,'alira-before-v6-'+randomUUID()+'.db')
+  destination=join(directory,'alira-before-v7-'+randomUUID()+'.db')
   const handle=await open(destination,'wx',0o600);await handle.close();reserved=true
   await backup(source,destination)
   const copy=new DatabaseSync(destination,{readOnly:true})

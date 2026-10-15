@@ -2,7 +2,7 @@
 
 **Organiza. Avanza. Logra.**
 
-Gestor de actividades académicas y personales con React, Express, SQLite y PWA. **Fase 8: optimización de interfaz y gestión académica, con seguridad y PWA conservadas.** No utiliza inteligencia artificial.
+Plataforma multiusuario de organización personal y académica con React, Express, SQLite y PWA. **Fase 9: ALIRA Personal, ALIRA Control, comunicaciones y privacidad por cuenta.** No utiliza inteligencia artificial.
 
 El código queda preparado para revisión de producción. **No se ha publicado**, contratado alojamiento ni configurado un dominio. La cuenta real del propietario se elige localmente; no se incluyen usuarios ni contraseñas predeterminados.
 
@@ -39,7 +39,7 @@ npm.cmd run admin:create
 
 El comando solicita un nombre y una contraseña **oculta**, de 12 a 128 caracteres, con confirmación. No escribas tu contraseña en el código, en .env, en argumentos del shell ni en el chat. El nombre admite de 3 a 80 letras, números, puntos, guiones y guiones bajos.
 
-Solo se permite un propietario. Si ya existe, el comando no lo reemplaza. No existe endpoint remoto para reclamar o crear esta cuenta. Si todavía no está configurada, el servidor puede mostrar la pantalla informativa, pero todos los datos personales permanecen bloqueados.
+El comando configura únicamente al administrador principal y no reemplaza una cuenta existente. Las otras cuentas se crean por invitación desde ALIRA Control, sin contraseñas predeterminadas. No hay alta pública libre ni endpoint remoto para reclamar la cuenta principal.
 
 Inicia el backend:
 
@@ -97,9 +97,9 @@ No se necesita un secreto de sesión global: las sesiones usan tokens aleatorios
 
 Las contraseñas usan **scrypt asíncrono**, N=131072, r=8, p=1, sal aleatoria de 16 bytes y hash de 64 bytes, con comparación constante. Es una alternativa moderna sin dependencia nativa adicional; referencia de parámetros: [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 
-Las sesiones usan tokens aleatorios de 32 bytes; SQLite guarda únicamente SHA-256, propietario, creación y expiración. El navegador recibe una cookie HttpOnly, Path=/ y SameSite=Strict. En producción se añade Secure y el nombre __Host-alira.sid. En desarrollo HTTP local se usa alira.sid. La sesión dura siete días por defecto, sin renovación indefinida.
+Las sesiones usan tokens aleatorios de 32 bytes; SQLite guarda únicamente SHA-256, cuenta, creación y expiración. El navegador recibe una cookie HttpOnly, Path=/ y SameSite=Strict. En producción se añade Secure y el nombre __Host-alira.sid. En desarrollo HTTP local se usa alira.sid. La sesión dura siete días por defecto, sin renovación indefinida.
 
-Logout elimina la sesión del servidor y desmonta los datos privados de la interfaz. Cambiar contraseña exige verificar la actual, actualiza su hash y revoca todas las sesiones. Otras pestañas reciben la señal local de salida; otros dispositivos se verifican al enfocar, al consultar la API o en las comprobaciones de sesión.
+Logout elimina la sesión del servidor y desmonta los datos privados de la interfaz. Cambiar contraseña exige verificar la actual, actualiza su hash y revoca todas las sesiones de esa cuenta. Otras pestañas reciben la señal local de salida; otros dispositivos se verifican al enfocar, al consultar la API o en las comprobaciones de sesión.
 
 Si falla la red durante logout, se bloquea la interfaz local y se advierte que la revocación no pudo confirmarse. Al volver a iniciar sesión se reemplaza la sesión de ese navegador. No se afirma un cierre remoto que no fue confirmado.
 
@@ -108,7 +108,7 @@ Protecciones:
 - Token CSRF derivado de la sesión para todas las escrituras autenticadas; se mantiene solo en memoria del cliente. No se muestra en Configuración.
 - Login con JSON y cabecera propia; rechazo de Origin ajeno y Sec-Fetch-Site cross-site.
 - Cinco intentos por IP cada quince minutos; los accesos válidos reinician el contador de esa IP. Límite global de treinta solicitudes de acceso por quince minutos. Los contadores se guardan en SQLite.
-- Hasta dos verificaciones de login simultáneas, veinte sesiones persistentes y seiscientas solicitudes autenticadas por minuto y sesión.
+- Hasta dos verificaciones de login simultáneas, veinte sesiones persistentes por cuenta y seiscientas solicitudes autenticadas por minuto y sesión.
 - Cambio de contraseña y verificación de respaldo con límites adicionales.
 - Cuerpos privados de hasta 1 MB y login de hasta 4 KB.
 - SQL parametrizado, errores públicos genéricos y logs sin cuerpos, contraseñas, cookies o tokens.
@@ -157,8 +157,9 @@ No se reinicializa la base ni se eliminan tareas, recordatorios, historial, meta
 | 4 | Tablas históricas de conversaciones, conservadas e inactivas |
 | 5 | owner, sessions, auth_attempts y versiones/triggers de tareas y metas |
 | 6 | Semestres, asignaturas, sesiones semanales, relaciones académicas y ampliación del ledger de avisos |
+| 7 | Usuarios, propiedad de datos, docentes, invitaciones, anuncios, mensajes, soporte, auditoría y compartición |
 
-Las migraciones se aplican secuencialmente en una transacción, son idempotentes y rechazan versiones superiores a 6. La cuenta no se crea automáticamente durante la migración.
+Las migraciones se aplican secuencialmente en una transacción, son idempotentes y rechazan versiones superiores a 7. La cuenta no se crea automáticamente durante la migración.
 
 Las fechas límite son días locales YYYY-MM-DD de America/Lima; los instantes son ISO UTC. El título admite 3–120 caracteres. Prioridades alta/media/baja; estados pendiente/en_progreso/completada. Los datos demo siguen separados.
 
@@ -188,11 +189,11 @@ Todas las rutas siguientes requieren sesión:
 | PUT /api/goals/:id | Editar meta |
 | PATCH /api/goals/:id/active | Activar/desactivar |
 
-No existen rutas de registro público ni de IA. Las respuestas JSON siguen {data: ...} o {error: {message: ...}}.
+No existen rutas de registro público libre ni de IA. POST /api/auth/invitation permite activar exclusivamente un código administrativo válido. Las respuestas JSON siguen {data: ...} o {error: {message: ...}}.
 
 ## Copias de seguridad
 
-En Configuración puedes descargar un respaldo verificando tu contraseña. Las copias contienen tareas, metas, historial, conversaciones antiguas y hash de acceso: son **privadas**. No contienen sesiones reutilizables ni contadores de intentos.
+El administrador principal puede descargar un respaldo desde Configuración o ALIRA Control > Respaldos verificando tu contraseña. Las copias contienen tareas, metas, historial, conversaciones antiguas y hash de acceso: son **privadas**. No contienen sesiones reutilizables ni contadores de intentos.
 
 También puedes ejecutar desde server:
 
@@ -225,13 +226,13 @@ Dockerfile construye el frontend, instala solo dependencias productivas del serv
 Preparación local de imagen, solo si tienes Docker:
 
 ```powershell
-docker build -t alira:0.8.0 .
+docker build -t alira:0.9.0 .
 ```
 
 Antes de iniciar producción, configura FRONTEND_ORIGIN, TRUST_PROXY, almacenamiento y propietario. Ejemplo de creación privada del propietario en un volumen nombrado:
 
 ```powershell
-docker run --rm -it -e FRONTEND_ORIGIN=https://alira.tu-dominio -e TRUST_PROXY=loopback -v alira-data:/data -v alira-backups:/backups alira:0.8.0 npm run admin:create
+docker run --rm -it -e FRONTEND_ORIGIN=https://alira.tu-dominio -e TRUST_PROXY=loopback -v alira-data:/data -v alira-backups:/backups alira:0.9.0 npm run admin:create
 ```
 
 Este comando no publica puertos. loopback solo es correcto si el proxy realmente llega por loopback; para el servicio real usa su IP/CIDR o red confiable explícita. No copies este valor sin validar la topología. Monta volúmenes nombrados o bind mounts persistentes; no dependas de volúmenes anónimos.
@@ -277,9 +278,9 @@ En client: npm.cmd test, npm.cmd run lint, npm.cmd run build, npm.cmd run test:e
 
 | Comprobación | Resultado ejecutado |
 |---|---|
-| Backend | 44/44 correctas |
-| Cliente | 25/25 correctas |
-| Navegador, regresión y seguridad | 19/19 correctas |
+| Backend | 53/53 correctas |
+| Cliente | 27/27 correctas |
+| Navegador, regresión y seguridad | 20/20 correctas |
 | Producción PWA | 10/10 correctas |
 | Lint y build | Correctos |
 | SQLite principal | No vaciada ni restaurada |
@@ -310,3 +311,24 @@ La fase actual amplía las siete fases anteriores. Consulta [la documentación c
 Los comandos de instalación e inicio anteriores no cambian. Tras actualizar, reinicia el backend y recompila/reinicia el cliente. En PWA, acepta la actualización cuando hayas guardado/cerrado los formularios.
 
 Comprobaciones de Fase 8: backend 44, cliente 25, navegador 19 y PWA 10 pruebas correctas; lint y build correctos. Los resultados y sus límites se detallan en docs/FASE8.md.
+
+## Fase 9 — Plataforma multiusuario
+
+Consulta [la guía completa de Fase 9](docs/FASE9.md): roles, privacidad, modelo relacional, endpoints, administración, docentes, mensajes, soporte, compartición y pruebas.
+
+- **ALIRA Personal**: tareas, academia, horarios, docentes, metas, reportes y avisos aislados por cuenta.
+- **ALIRA Control**: disponible solo para el administrador principal original; usuarios, anuncios, mensajería, soporte, indicadores agregados, auditoría, configuración y respaldos.
+- Alta por invitación privada de un solo uso (48 horas), sin registro público ni contraseñas predeterminadas. El usuario elige su contraseña desde Tengo un código de invitación.
+- Activación/desactivación, revocación por cuenta y recuperación administrativa protegida (código de una hora).
+- Docentes propios con buscador y selección por ID en horarios; nombres vinculados actualizados sin duplicación por sesión.
+- Anuncios dirigidos, destacados, programados y con caducidad; recibos de lectura.
+- Conversaciones con administración y soporte por HTTP, con actualización cada 15 segundos y estados de lectura.
+- Compartición voluntaria y revocable de resúmenes de cursos, reglas de horario o proyectos, sin edición ni acceso automático del administrador.
+- Migración 007 a esquema 7, con respaldo previo consistente, verificación de integridad y conservación de la cuenta original, sesiones y datos.
+- Sin IA, nuevos servicios externos, publicación, commits ni push.
+
+Para invitar: ALIRA Control > Usuarios > Crear invitación privada. Entrega usuario y código por un canal privado; el sistema no envía correo automáticamente. No escribas contraseñas ni códigos en Git, logs o URLs.
+
+Las cantidades administrativas no muestran contenido privado. La actividad se limita a inicios de sesión verificables y cantidades de registros; no se rastrean pulsaciones ni navegación. Las comunicaciones y auditoría se conservan sin purga automática. El operador custodia SQLite y sus respaldos; no hay cifrado de extremo a extremo.
+
+Los comandos de inicio existentes siguen funcionando. La cuenta actual no debe crearse de nuevo. Guarda/cierra formularios antes de aceptar la actualización PWA. Las copias normales/restauradas no incluyen sesiones ni códigos de acceso reutilizables; las copias previas a migración conservan acceso y son especialmente privadas.
