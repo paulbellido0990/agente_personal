@@ -19,5 +19,5 @@ test('IA retirada: rutas inactivas y conversaciones históricas preservadas',asy
  assert.equal((await fetch(base+'/api/tasks')).status,200)
  assert.equal(JSON.stringify(db.prepare('SELECT * FROM conversations').all()),before)
  assert.equal(db.prepare('SELECT content FROM conversation_messages').get().content,'Mensaje histórico')
- assert.equal(db.prepare('PRAGMA user_version').get().user_version,5)
+ assert.equal(db.prepare('PRAGMA user_version').get().user_version,6)
 })

@@ -1,3 +1,5 @@
+import {attachAcademic,storeAcademic,academicTaskInput} from '../services/academicService.js'
+import {HttpError} from '../errors.js'
 import { randomUUID } from 'node:crypto'
 export function createTaskRepository(db) {
   const fields = ['id','titulo','descripcion','categoria','prioridad','estado','fechaLimite','createdAt','updatedAt','recordatorio','completedAt']
@@ -16,8 +18,9 @@ export function createTaskRepository(db) {
       .run(randomUUID(),task.id,kind,occurredAt,task.categoria,task.prioridad,task.fechaLimite)
   }
   return {
-    get:id=>get.get(id),
-    list:()=>db.prepare('SELECT * FROM tasks').all(),
+    normalize:task=>({...task,academic:academicTaskInput(db,task.academic,task.id)}),
+    get:id=>{const task=get.get(id);return task?attachAcademic(db,task):undefined},
+    list:()=>db.prepare('SELECT * FROM tasks').all().map(t=>attachAcademic(db,t)),
     insert(task,{ imported=false }={}) {
       return transaction(()=>{
         const completedAt=!imported && task.estado==='completada' ? task.createdAt : null
@@ -25,7 +28,8 @@ export function createTaskRepository(db) {
         insert.run(...fields.map(field=>stored[field]??null))
         if(stored.createdAt!=='1970-01-01T00:00:00.000Z')log(stored,'created',stored.createdAt)
         if(completedAt) log(stored,'completed',completedAt)
-        return get.get(task.id)
+        storeAcademic(db,task)
+        return attachAcademic(db,get.get(task.id))
       })
     },
     update(task) {
@@ -34,10 +38,11 @@ export function createTaskRepository(db) {
         const completedAt=task.estado==='completada' ? previous.estado==='completada' ? previous.completedAt : task.updatedAt : null
         update.run(task.titulo,task.descripcion,task.categoria,task.prioridad,task.estado,task.fechaLimite,task.updatedAt,task.recordatorio??null,completedAt,task.id)
         if(task.estado==='completada' && previous.estado!=='completada') log(task,'completed',completedAt)
-        return get.get(task.id)
+        storeAcademic(db,task)
+        return attachAcademic(db,get.get(task.id))
       })
     },
-    remove:id=>db.prepare('DELETE FROM tasks WHERE id=?').run(id).changes,
+    remove:id=>{if(db.prepare('SELECT 1 FROM task_academic WHERE projectId=?').get(id))throw new HttpError(409,'El proyecto tiene hitos. Reasigna o elimina sus hitos antes de eliminarlo.');return db.prepare('DELETE FROM tasks WHERE id=?').run(id).changes},
     transaction,
   }
 }

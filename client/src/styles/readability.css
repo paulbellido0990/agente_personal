@@ -1,0 +1,32 @@
+:root{--text-xs:.8125rem;--text-sm:.875rem;--text-base:1rem;--text-menu:.9375rem;--title-section:1.25rem;--title-page:clamp(1.75rem,2.2vw,2rem)}
+body{font-size:var(--text-base);line-height:1.55}
+h2,.calendar-card h2,.progress-card h2{font-size:var(--title-section);line-height:1.3}
+h3{font-size:1.0625rem}small{font-size:var(--text-xs)}
+.page-heading h1{font-size:var(--title-page);line-height:1.2}
+.page-heading p,.panel-heading p,.calendar-subtitle,.form-intro,.progress-copy p{font-size:var(--text-sm)}
+.nav-item,.search input,.view-tabs button,.new-task,.task-form input,.task-form select,.task-form textarea,.task-form label{font-size:var(--text-menu)}
+.nav-label,.eyebrow,.sidebar-footer,.sidebar-note p,.sidebar-note>span,.brand small{font-size:var(--text-xs)}
+.icon-button{min-width:44px;min-height:44px}
+button,input,select{min-height:44px}
+.primary-button,.secondary-button,.danger-button,.sort-button,.reset-filters{min-height:44px;font-size:.9375rem}.calendar-navigation .icon-button{min-width:44px}
+.task-filters{flex-wrap:wrap}.task-filters select,.sort-button{font-size:var(--text-sm);min-height:44px;max-width:100%}
+.task-filters label{min-width:0;max-width:100%}
+.summary-card>p,.task-name strong,td{font-size:var(--text-menu)}
+.summary-card>small,.badge,th,.task-name small,.task-description,.table-footer,.count-badge,.date-chip,.demo-notice p,.page-footer{font-size:var(--text-xs)}
+.summary-grid{gap:1rem}.summary-card{padding:1.125rem}.stat-number{font-size:2.125rem}
+.task-name strong{min-width:130px}.dashboard-columns{gap:1.25rem;margin-top:1.25rem}
+.profile-text strong,.profile-text small,.demo-pill{font-size:var(--text-xs)}
+.profile-button{background:transparent;border-radius:12px;padding:.25rem;max-width:180px}.profile-text strong{max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.header-actions{position:relative}.header-popover{position:absolute;z-index:30;top:calc(100% + 1rem);right:0;width:min(440px,calc(100vw - 2rem));max-height:70dvh;overflow:auto;overscroll-behavior:contain;background:white;border:1px solid var(--line);border-radius:16px;padding:1.25rem;box-shadow:0 12px 45px #25213d24;display:grid;gap:1rem}
+.profile-popover{width:280px}.notification-list{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
+.notification-list li{padding:1rem;border:1px solid var(--line);border-radius:12px;display:grid;gap:.4rem;overflow-wrap:anywhere}
+.notification-list .is-unread{background:var(--lavender);border-left:4px solid var(--primary)}.notification-list .is-read{background:#faf9fd}
+.notification-list time,.notification-list li>span{font-size:var(--text-xs);color:var(--muted)}
+.reminder-open{text-align:left;font-size:var(--text-base)}.notification{display:grid!important;position:relative}
+.calendar-day{width:100%;height:34px;min-height:34px;font-size:var(--text-xs)}
+.weekday,.calendar-legend,.eyebrow-note,.calendar-bottom p,.calendar-bottom strong,.progress-ring small,.progress-legend,.progress-copy .eyebrow,.closing-note p,.closing-note>span{font-size:var(--text-xs)}
+.calendar-grid{gap:4px 2px}.calendar-legend{white-space:normal;flex-wrap:wrap}.right-column{min-width:0}
+.reminder-events li{gap:1rem}.reminder-events p{font-size:var(--text-sm)}
+@media(max-width:1250px){.dashboard-columns{grid-template-columns:minmax(0,1fr)}.right-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.profile-text{display:none}}
+@media(max-width:760px){.topbar{padding-inline:12px;gap:4px}.header-actions{gap:2px;position:static}.topbar{position:relative}.header-popover{top:calc(100% + .25rem);right:1rem}.profile-button>svg{display:none}.search{min-width:0}.search input{font-size:1rem}.page-heading h1{font-size:1.75rem}.summary-card>small{font-size:var(--text-xs)}.demo-notice{flex-wrap:wrap}.demo-notice p{flex:1;min-width:180px}.summary-card{padding:1rem}.view-tabs{gap:.75rem}.section-toolbar{flex-wrap:wrap}.page-footer{font-size:var(--text-xs)}}
+@media(max-width:540px){.right-column{grid-template-columns:1fr}.summary-grid{gap:.625rem}.summary-card>p{font-size:var(--text-sm)}.task-filters select{font-size:var(--text-sm)}.progress-content{flex-wrap:wrap}.page-heading p{font-size:var(--text-sm)}}

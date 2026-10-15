@@ -9,3 +9,6 @@ import './styles/tasks.css'
 import './styles/calendar.css'
 import './styles/statistics.css'
 createRoot(document.getElementById('root')).render(<StrictMode><AuthGate /></StrictMode>)
+
+import './styles/readability.css'
+import './styles/academic.css'

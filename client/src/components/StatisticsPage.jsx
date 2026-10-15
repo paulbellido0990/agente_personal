@@ -7,7 +7,7 @@ import StatisticsCharts from './StatisticsCharts'
 function presetRange(preset,today){
   return {from:preset==='month'?today.slice(0,7)+'-01':addDays(today,preset==='30'?-29:-6),to:today}
 }
-export default function StatisticsPage({today,tasks,demo,connected,onGoals}) {
+export default function StatisticsPage({today,tasks,demo,connected,onGoals,academic,onAcademic}) {
   const [preset,setPreset]=useState('7'),[range,setRange]=useState(()=>presetRange('7',today))
   const [draft,setDraft]=useState(range),[formError,setFormError]=useState('')
   const [exporting,setExporting]=useState(false),[exportError,setExportError]=useState('')
@@ -36,6 +36,7 @@ export default function StatisticsPage({today,tasks,demo,connected,onGoals}) {
   const data=report.data
   return <section className="statistics-page" aria-labelledby="statistics-title">
     <div className="statistics-heading"><div><span className="eyebrow">ACTIVIDAD CON CONTEXTO</span><h2 id="statistics-title">Estadísticas</h2><p>Datos de SQLite · fechas locales de America/Lima</p></div><button className="secondary-button" onClick={onGoals}><Target size={15}/>Mis objetivos</button></div>
+    {connected&&academic?.courses.length>0&&<section className="panel academic-summary"><h2>Actividad académica actual</h2><p>Actividades completadas por asignatura, sin equivalencia con notas. Este resumen no modifica el reporte histórico.</p>{academic.statistics.map(s=><p key={s.courseId}><strong>{academic.courses.find(c=>c.id===s.courseId)?.nombre}</strong>: {s.pendientes} pendientes · {s.percent}% completadas · {s.laboratoriosCompletados} laboratorios completados · {s.examenesProximos} exámenes próximos · {s.proyectosActivos} proyectos activos</p>)}<button className="secondary-button" onClick={onAcademic}>Ver resumen académico</button></section>}
     <form className="panel statistics-filters" onSubmit={apply}>
       <label>Periodo estadístico<select value={preset} onChange={e=>changePreset(e.target.value)}><option value="7">Últimos siete días</option><option value="30">Últimos treinta días</option><option value="month">Mes actual</option><option value="custom">Personalizado</option></select></label>
       <label>Desde<input type="date" required max={today} value={draft.from} disabled={preset!=='custom'} onChange={e=>setDraft({...draft,from:e.target.value})}/></label>

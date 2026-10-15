@@ -3,6 +3,7 @@ import { Target, House, ListTodo, CalendarDays, ChartNoAxesCombined, Bell, Spark
 const items = [
   { label: 'Inicio', icon: House, key: 'inicio' },
   { label: 'Mis tareas', icon: ListTodo, key: 'tareas' },
+  { label: 'Académico', icon: CalendarDays, key: 'academico' },
   { label: 'Calendario', icon: CalendarDays, key: 'calendario' },
   { label: 'Planificación', icon: ListTodo, key: 'planificacion' },
   { label: 'Estadísticas', icon: ChartNoAxesCombined, key: 'estadisticas' },
@@ -29,7 +30,7 @@ export default function Sidebar({ view, onNavigate, open, onClose }) {
           <Icon size={20} /><span>{label}</span>{!key && <small>Pronto</small>}
         </button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-note"><span className="little-spark"><Sparkles size={19} /></span><h3>Un paso a la vez.</h3><p>Los grandes logros empiezan con pequeñas tareas.</p><span>Tu espacio para avanzar <ArrowUpRight size={14} /></span></div>
-      <div className="sidebar-footer"><span className="status-dot" /> React + SQLite · v0.7</div></div>
+      <div className="sidebar-footer"><span className="status-dot" /> React + SQLite · v0.8</div></div>
     </aside>
   </>
 }

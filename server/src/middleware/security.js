@@ -16,14 +16,15 @@ export function securityHeaders(production){
 export function conditionalWrite(db){
  return (req,res,next)=>{
    if(!['PUT','PATCH','DELETE'].includes(req.method))return next()
-   const match=req.path.match(/^\/(tasks|goals)\/([^/]+)(?:\/(status|active))?$/)
+   const academic=req.path.match(/^\/academic\/(terms|courses|sessions)\/([^/]+)$/)
+   const match=academic ? [academic[0],academic[1],academic[2]] : req.path.match(/^\/(tasks|goals)\/([^/]+)(?:\/(status|active))?$/)
    if(!match)return next()
    const originalEnd=res.end
    let pending=false
    try{
      const id=decodeURIComponent(match[2])
      db.exec('BEGIN IMMEDIATE')
-     const row=db.prepare('SELECT version FROM '+(match[1]==='tasks'?'tasks':'goals')+' WHERE id=?').get(id)
+     const row=db.prepare('SELECT version FROM '+({tasks:'tasks',goals:'goals',terms:'academic_terms',courses:'courses',sessions:'class_sessions'}[match[1]])+' WHERE id=?').get(id)
      if(row){
        const expected=req.headers['if-match']
        if(!expected)throw new HttpError(428,'Actualiza el registro antes de modificarlo: falta su versión.')

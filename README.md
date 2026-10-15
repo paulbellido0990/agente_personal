@@ -2,7 +2,7 @@
 
 **Organiza. Avanza. Logra.**
 
-Gestor de actividades académicas y personales con React, Express, SQLite y PWA. **Fase 7 de 7: seguridad, sesiones del propietario, acceso multidispositivo y preparación para producción.** No utiliza inteligencia artificial.
+Gestor de actividades académicas y personales con React, Express, SQLite y PWA. **Fase 8: optimización de interfaz y gestión académica, con seguridad y PWA conservadas.** No utiliza inteligencia artificial.
 
 El código queda preparado para revisión de producción. **No se ha publicado**, contratado alojamiento ni configurado un dominio. La cuenta real del propietario se elige localmente; no se incluyen usuarios ni contraseñas predeterminados.
 
@@ -156,8 +156,9 @@ No se reinicializa la base ni se eliminan tareas, recordatorios, historial, meta
 | 3 | completedAt, task_events, analytics_metadata y goals |
 | 4 | Tablas históricas de conversaciones, conservadas e inactivas |
 | 5 | owner, sessions, auth_attempts y versiones/triggers de tareas y metas |
+| 6 | Semestres, asignaturas, sesiones semanales, relaciones académicas y ampliación del ledger de avisos |
 
-Las migraciones se aplican secuencialmente en una transacción, son idempotentes y rechazan versiones superiores a 5. La cuenta no se crea automáticamente durante la migración.
+Las migraciones se aplican secuencialmente en una transacción, son idempotentes y rechazan versiones superiores a 6. La cuenta no se crea automáticamente durante la migración.
 
 Las fechas límite son días locales YYYY-MM-DD de America/Lima; los instantes son ISO UTC. El título admite 3–120 caracteres. Prioridades alta/media/baja; estados pendiente/en_progreso/completada. Los datos demo siguen separados.
 
@@ -224,13 +225,13 @@ Dockerfile construye el frontend, instala solo dependencias productivas del serv
 Preparación local de imagen, solo si tienes Docker:
 
 ```powershell
-docker build -t alira:0.7.0 .
+docker build -t alira:0.8.0 .
 ```
 
 Antes de iniciar producción, configura FRONTEND_ORIGIN, TRUST_PROXY, almacenamiento y propietario. Ejemplo de creación privada del propietario en un volumen nombrado:
 
 ```powershell
-docker run --rm -it -e FRONTEND_ORIGIN=https://alira.tu-dominio -e TRUST_PROXY=loopback -v alira-data:/data -v alira-backups:/backups alira:0.7.0 npm run admin:create
+docker run --rm -it -e FRONTEND_ORIGIN=https://alira.tu-dominio -e TRUST_PROXY=loopback -v alira-data:/data -v alira-backups:/backups alira:0.8.0 npm run admin:create
 ```
 
 Este comando no publica puertos. loopback solo es correcto si el proxy realmente llega por loopback; para el servicio real usa su IP/CIDR o red confiable explícita. No copies este valor sin validar la topología. Monta volúmenes nombrados o bind mounts persistentes; no dependas de volúmenes anónimos.
@@ -276,9 +277,9 @@ En client: npm.cmd test, npm.cmd run lint, npm.cmd run build, npm.cmd run test:e
 
 | Comprobación | Resultado ejecutado |
 |---|---|
-| Backend | 36/36 correctas |
-| Cliente | 22/22 correctas |
-| Navegador, regresión y seguridad | 17/17 correctas |
+| Backend | 44/44 correctas |
+| Cliente | 25/25 correctas |
+| Navegador, regresión y seguridad | 19/19 correctas |
 | Producción PWA | 10/10 correctas |
 | Lint y build | Correctos |
 | SQLite principal | No vaciada ni restaurada |
@@ -292,3 +293,20 @@ No hay Docker instalado en este entorno: **no se ejecutó docker build ni un con
 No se realizó una auditoría externa o pentest. Quedan controles operativos antes de publicar: TLS/proxy reales, permisos y restauración del volumen, copia cifrada externa, monitorización de espacio, costo, disponibilidad y pruebas desde dispositivos físicos. MFA, recuperación de cuenta y notificaciones push son mejoras opcionales posteriores.
 
 No se publicará ni se contratarán servicios sin autorización explícita. No se crearon commits ni se hizo push.
+
+## Fase 8 — Gestión académica e interfaz
+
+La fase actual amplía las siete fases anteriores. Consulta [la documentación completa de la Fase 8](docs/FASE8.md) para el modelo relacional, los archivos, los endpoints, las pruebas y las limitaciones.
+
+- Tipografía legible en rem; campana con panel accesible, leídos persistentes y perfil funcional.
+- Académico: semestres, asignaturas, horario semanal/diario, evaluaciones, laboratorios, proyectos e hitos.
+- Actividades vinculadas a tasks, sin segunda tabla de tareas ni conversión automática de categorías.
+- Calendario integrado y filtros por semestre, asignatura, tipo, prioridad y estado.
+- Avance académico basado en actividades completadas; no se calculan notas.
+- Avisos académicos reutilizando el sistema existente. Las clases admiten avisos por día con activación explícita; no hay push con ALIRA cerrada.
+- Migración 006 a esquema 6. Antes de migrar una base antigua, el arranque y los comandos de administración generan un respaldo consistente y verifican su integridad. Los respaldos previos conservan sesiones: son privados. No se reinicializa SQLite.
+- Sin IA, nuevos servicios externos, commits, push ni despliegue.
+
+Los comandos de instalación e inicio anteriores no cambian. Tras actualizar, reinicia el backend y recompila/reinicia el cliente. En PWA, acepta la actualización cuando hayas guardado/cerrado los formularios.
+
+Comprobaciones de Fase 8: backend 44, cliente 25, navegador 19 y PWA 10 pruebas correctas; lint y build correctos. Los resultados y sus límites se detallan en docs/FASE8.md.

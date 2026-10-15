@@ -1,9 +1,10 @@
+import {isDeepStrictEqual} from 'node:util'
 import { randomUUID } from 'node:crypto'
 import { buildTask, validateTask, selectTasks, validDate, statusLabels, priorityLabels } from '../../../shared/tasks.js'
 import { HttpError } from '../errors.js'
-const editable = ['titulo','descripcion','categoria','prioridad','estado','fechaLimite','recordatorio']
+const editable = ['academic','titulo','descripcion','categoria','prioridad','estado','fechaLimite','recordatorio']
 const recordFields = [...editable, 'id','createdAt','updatedAt']
-const same = (a, b) => editable.every(key => (a[key] ?? null) === (b[key] ?? null))
+const same = (a, b) => editable.every(key => isDeepStrictEqual(a[key] ?? null,b[key] ?? null))
 export function validId(id) {
   // Los IDs locales previos pueden no ser UUID; se preservan sin interpolarlos en SQL.
   return typeof id === 'string' && /^[A-Za-z0-9_-]{1,120}$/.test(id) && !id.startsWith('demo-')
@@ -27,7 +28,7 @@ export function taskInput(body, importing = false) {
     }
     return { ...task, id: body.id, createdAt: body.createdAt, updatedAt: body.updatedAt }
   }
-  return { ...task, id: body.id || randomUUID() }
+  return { ...task, ...(body.academic !== undefined ? {academic:body.academic} : {}), id: body.id || randomUUID() }
 }
 export function createTaskService(repo) {
   function get(id) {
@@ -46,7 +47,7 @@ export function createTaskService(repo) {
       return selectTasks(repo.list().filter(t => (!query.from || t.fechaLimite && t.fechaLimite >= query.from) && (!query.to || t.fechaLimite && t.fechaLimite <= query.to)), { query: query.q, status: query.estado, priority: query.prioridad, category: query.categoria, sort: query.sort, descending: query.order === 'desc' })
     },
     create(body) {
-      const task = taskInput(body)
+      const task = repo.normalize(taskInput(body))
       const previous = repo.get(task.id)
       if (previous) {
         if (!same(previous, task)) throw new HttpError(409, 'Ese identificador ya pertenece a otra tarea.')
@@ -58,7 +59,7 @@ export function createTaskService(repo) {
       const previous = get(id)
       if (body?.id !== undefined) throw new HttpError(400, 'No se puede modificar el identificador.')
       const input = taskInput({ ...body, recordatorio: body?.recordatorio === undefined ? (body?.fechaLimite ? previous.recordatorio : null) : body.recordatorio })
-      return repo.update({ ...input, id, createdAt: previous.createdAt, updatedAt: new Date().toISOString() })
+      return repo.update({ ...input, academic:body.academic===undefined?previous.academic:body.academic, id, createdAt: previous.createdAt, updatedAt: new Date().toISOString() })
     },
     status(id, body) {
       object(body)

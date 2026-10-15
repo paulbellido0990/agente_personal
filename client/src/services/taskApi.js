@@ -41,6 +41,9 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
     changePassword: body => request('/auth/password',{method:'POST',body}),
     settings: () => request('/settings'),
     backup: currentPassword => request('/settings/backup',{method:'POST',body:{currentPassword},responseType:'blob',timeoutMs:60000}),
+    academic: signal => request('/academic',{signal}),
+    saveAcademic: (kind,body,record) => request('/academic/'+kind+(record?'/'+encodeURIComponent(record.id):''),{method:record?'PUT':'POST',body,headers:record?{'If-Match':'"'+record.version+'"'}:{}}),
+    removeSession: record => request('/academic/sessions/'+encodeURIComponent(record.id),{method:'DELETE',headers:{'If-Match':'"'+record.version+'"'}}),
     health: signal => request('/health', {signal}),
     statistics: (range,signal) => request('/statistics?' + new URLSearchParams(range),{signal}),
     goals: signal => request('/goals',{signal}),
@@ -61,7 +64,7 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
 }
 export const taskApi = createTaskApi(import.meta.env?.VITE_API_URL || defaultUrl)
 export function taskPayload(input) {
-  return { titulo: input.titulo, descripcion: input.descripcion, categoria: input.categoria, prioridad: input.prioridad, estado: input.estado, fechaLimite: input.fechaLimite || null, recordatorio: input.recordatorio ?? null }
+  return { titulo: input.titulo, descripcion: input.descripcion, categoria: input.categoria, prioridad: input.prioridad, estado: input.estado, fechaLimite: input.fechaLimite || null, recordatorio: input.recordatorio ?? null, ...(input.academic !== undefined ? {academic:input.academic} : {}) }
 }
 export async function importInBatches(api, tasks) {
   let imported = 0, skipped = 0

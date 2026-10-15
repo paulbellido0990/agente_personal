@@ -35,7 +35,7 @@ export default function useReminders({ demo, tasks, connected }) {
     document.addEventListener('visibilitychange', visible)
     return () => { cancelled = true; clearInterval(timer); window.removeEventListener('focus',refresh); document.removeEventListener('visibilitychange',visible) }
   }, [refresh, tasks])
-  const activeEvents = useMemo(() => demo ? [] : events.filter(event => tasks.some(task => task.id === event.taskId && task.estado !== 'completada' && task.fechaLimite === event.fechaLimite && task.recordatorio === event.daysBefore)), [demo,events,tasks])
+  const activeEvents = useMemo(() => demo ? [] : events.filter(event => event.sessionId || tasks.some(task => task.id === event.taskId && task.estado !== 'completada' && task.fechaLimite === event.fechaLimite && task.recordatorio === event.daysBefore)), [demo,events,tasks])
   useEffect(() => {
     if (!browserEnabled || demo || !connected) return
     let cancelled = false

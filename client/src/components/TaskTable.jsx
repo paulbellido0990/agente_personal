@@ -1,3 +1,4 @@
+import {activityLabels} from '../../../shared/academic'
 import { useState } from 'react'
 import { Pencil, Trash2, SearchX, ListTodo } from 'lucide-react'
 import { statusLabels, priorityLabels, formatDate, selectTasks } from '../services/tasks'
@@ -20,7 +21,7 @@ export default function TaskTable({ tasks, query, expanded, demo, today, onEdit,
     {!demo && loading && <p className="loading-message" role="status">Cargando tareas…</p>}
     {!demo && !loading && !connected && <p className="storage-warning" role="status">Sin conexión. La última lista recibida puede estar desactualizada; no se ha reemplazado por datos locales.</p>}
     {!!displayed.length && <div className="table-scroll"><table className="live-task-table"><caption className="sr-only">{demo ? 'Tareas de demostración' : 'Tus tareas'}. Usa las acciones para editar, cambiar estado o eliminar.</caption><thead><tr><th>Tarea</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{displayed.map(task => <tr key={task.id}>
-      <td data-label="Tarea"><div className="task-name"><div><strong>{task.titulo}</strong><small>{task.categoria}</small>{task.descripcion && <p className="task-description">{task.descripcion}</p>}</div></div></td>
+      <td data-label="Tarea"><div className="task-name"><div><strong>{task.titulo}</strong><small>{task.categoria}{task.academic && ' · Académico: '+activityLabels[task.academic.tipo]}</small>{task.descripcion && <p className="task-description">{task.descripcion}</p>}</div></div></td>
       <td data-label="Prioridad"><span className={'badge priority-' + task.prioridad}>{priorityLabels[task.prioridad]}</span></td>
       <td data-label="Fecha límite" className="date-cell">{formatDate(task.fechaLimite)}{task.fechaLimite && task.fechaLimite < today && task.estado !== 'completada' && <span className="overdue">Vencida</span>}</td>
       <td data-label="Estado"><select disabled={busy || (!demo && (loading || !connected))} className={'task-status badge state-' + task.estado} aria-label={'Estado de ' + task.titulo} value={task.estado} onChange={event => onStatus(task.id, event.target.value)}>{Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></td>

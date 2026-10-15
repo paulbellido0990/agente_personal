@@ -1,4 +1,5 @@
 import express from 'express'
+import {academicRoutes} from './routes/academic.js'
 import {join} from 'node:path'
 import {statisticsRoutes} from './routes/statistics.js'
 import {reminderRoutes} from './routes/reminders.js'
@@ -43,7 +44,7 @@ export function createApp({db,origin='http://localhost:5173',now,production=fals
  app.use('/api',express.json({limit:'1mb',strict:true}))
  app.post('/api/auth/logout',(req,res)=>{auth.logout(req,res);res.status(204).end()})
  app.post('/api/auth/password',async(req,res)=>res.json({data:await auth.changePassword(req,res)}))
- app.get('/api/settings',(_req,res)=>res.json({data:{version:'0.7.0',storage:'SQLite centralizada',backup:'Descarga protegida; las copias contienen datos privados y el hash de acceso.'}}))
+ app.get('/api/settings',(_req,res)=>res.json({data:{version:'0.8.0',storage:'SQLite centralizada',backup:'Descarga protegida; las copias contienen datos privados y el hash de acceso.'}}))
  app.post('/api/settings/backup',async(req,res)=>{
    if(!req.body||Object.keys(req.body).some(k=>k!=='currentPassword'))throw new HttpError(400,'Datos de respaldo no válidos.')
    await auth.reauthenticate(req,req.body.currentPassword)
@@ -54,6 +55,7 @@ export function createApp({db,origin='http://localhost:5173',now,production=fals
    })
  })
  app.use('/api',conditionalWrite(db))
+ app.use('/api/academic',academicRoutes(db,now))
  app.use('/api',statisticsRoutes(db,now))
  app.use('/api/reminders',reminderRoutes(db,now))
  app.use('/api/tasks',taskRoutes(createTaskService(createTaskRepository(db))))

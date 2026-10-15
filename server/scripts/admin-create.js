@@ -1,5 +1,6 @@
 import {createInterface} from 'node:readline/promises'
 import {Writable} from 'node:stream'
+import {prepareMigrationBackup} from '../src/db/migrationBackup.js'
 import {getConfig} from '../src/config.js'
 import {openDatabase} from '../src/db/database.js'
 import {initializeOwner} from '../src/services/passwords.js'
@@ -9,7 +10,7 @@ const output=new Writable({write(chunk,_encoding,callback){if(!muted)process.std
 const rl=createInterface({input:process.stdin,output,terminal:true})
 let db
 try{
- const config=getConfig();db=openDatabase(config.dbPath)
+ const config=getConfig();await prepareMigrationBackup(config.dbPath,config.backupDir);db=openDatabase(config.dbPath)
  if(db.prepare('SELECT id FROM owner').get())throw new Error('La cuenta propietaria ya existe; no se sobrescribirá.')
  const username=await rl.question('Nombre del propietario: ')
  process.stdout.write('Contraseña (mínimo 12 caracteres, oculta): ');muted=true

@@ -15,7 +15,7 @@ let reserved=false
 try{
  if(original.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('La copia no supera la comprobación de integridad.')
  original.prepare('SELECT id FROM tasks LIMIT 1').all()
- if(original.prepare('PRAGMA user_version').get().user_version>5)throw new Error('La copia pertenece a una versión posterior.')
+ if(original.prepare('PRAGMA user_version').get().user_version>6)throw new Error('La copia pertenece a una versión posterior.')
  await mkdir(dirname(target),{recursive:true,mode:0o700})
  const handle=await open(target,'wx',0o600);await handle.close();reserved=true
  await backup(original,target)

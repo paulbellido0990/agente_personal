@@ -11,6 +11,9 @@ import SecuritySettings from './components/SecuritySettings'
 import TaskForm from './components/TaskForm'
 import DeleteTaskDialog from './components/DeleteTaskDialog'
 import ImportTasksDialog from './components/ImportTasksDialog'
+import useAcademic from './hooks/useAcademic'
+import AcademicPage from './components/AcademicPage'
+import AcademicSchedule from './components/AcademicSchedule'
 import useTasks from './hooks/useTasks'
 import useToday from './hooks/useToday'
 import useReminders from './hooks/useReminders'
@@ -26,6 +29,9 @@ const StatisticsPage = lazy(() => import('./components/StatisticsPage'))
 const GoalsPage = lazy(() => import('./components/GoalsPage'))
 export default function App({account,onLogout}) {
   const manager = useTasks()
+  const academic = useAcademic(manager.demo)
+  const [scope, setScope] = useState('')
+  const [academicLanding,setAcademicLanding] = useState('terms')
   const realToday = useToday()
   const today = manager.demo ? DEMO_DATE : realToday
   const reminders = useReminders({ demo: manager.demo, tasks: manager.tasks, connected: manager.connected })
@@ -38,27 +44,33 @@ export default function App({account,onLogout}) {
   const [view, setView] = useState('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const analytical = view === 'estadisticas' || view === 'objetivos' || view === 'recordatorios' || view === 'configuracion'
+  const analytical = view === 'estadisticas' || view === 'objetivos' || view === 'recordatorios' || view === 'configuracion' || view === 'academico'
   const create = initialDate => setEditor({ task: null, initialDate: typeof initialDate === 'string' ? initialDate : null })
   const disabled = manager.busy || (!manager.demo && (manager.loading || !manager.connected))
   const detailedTask = manager.tasks.find(task => task.id === detailsId)
   const openTask = id => setDetailsId(id)
+  const saveTask = async (...args) => { const ok=await manager.save(...args);if(ok&&!manager.demo)academic.refresh();return ok }
+  const changeStatus = async (...args) => { const ok=await manager.changeStatus(...args);if(ok&&!manager.demo)academic.refresh();return ok }
+  const scopedTasks = manager.tasks.filter(t => !scope || (scope === 'academic' ? !!t.academic : !t.academic))
   const visibleTasks = selectTasks(manager.tasks, { query })
   const selectCalendarDate = day => { setCalendarDate(day); setView('calendario'); setMenuOpen(false) }
-  const showReminders = () => { document.getElementById('recordatorios')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); document.getElementById('recordatorios')?.focus() }
-  const navigate = value => { setView(value); setMenuOpen(false) }
+
+  const createAcademic = initialAcademic => setEditor({task:null,initialAcademic})
+  const showSchedule = () => { setAcademicLanding('sessions'); setView('academico'); setMenuOpen(false) }
+  const openReminder = event => { if(event.sessionId) showSchedule(); else openTask(event.taskId) }
+  const navigate = value => { if(value==='academico')setAcademicLanding('terms');setView(value); setMenuOpen(false) }
 
   return <>
     <a className="skip-link" href="#contenido">Saltar al contenido</a>
     <div className="app-shell">
       <Sidebar view={view} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="workspace">
-        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} onReminders={showReminders} analytics={analytical} account={account} />
+        <Header query={query} setQuery={setQuery} onMenu={() => setMenuOpen(!menuOpen)} demo={manager.demo} unread={reminders.events.filter(e => !e.readAt).length} reminders={reminders} connected={manager.connected} onOpen={id => openTask(id)} onOpenReminder={openReminder} onNavigate={navigate} analytics={analytical && view !== 'academico'} account={account} />
         <main id="contenido" tabIndex="-1">
           <div className="page-heading">
             <div>
               <span className="eyebrow">TU ESPACIO PARA AVANZAR</span>
-              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : view === 'recordatorios' ? 'Tus entregas, a tiempo' : view === 'configuracion' ? 'ALIRA a tu manera' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
+              <h1>{view === 'inicio' ? 'Un día más cerca de tus metas' : view === 'calendario' ? 'Un lugar para cada entrega' : view === 'planificacion' ? 'Tu siguiente paso, con claridad' : view === 'estadisticas' ? 'Tus avances, con contexto' : view === 'objetivos' ? 'Metas que avanzan contigo' : view === 'recordatorios' ? 'Tus entregas, a tiempo' : view === 'academico' ? 'Tu semestre, organizado' : view === 'configuracion' ? 'ALIRA a tu manera' : 'Todo empieza con un pequeño paso'}<span className="heading-dot">.</span></h1>
               <p>Organiza tus ideas, enfócate en lo importante y celebra cada avance.</p>
             </div>
             <span className="date-chip"><CalendarDays size={16} />{formatDate(today)} {manager.demo && <small>Demo</small>}</span>
@@ -74,7 +86,7 @@ export default function App({account,onLogout}) {
               {manager.demo ? 'Volver a mis tareas' : 'Explorar demo'}
             </button>
           </div>
-          <PwaPanel settings={view === 'configuracion'} busy={manager.busy || !!editor || !!deleting || importing} />
+          <PwaPanel settings={view === 'configuracion'} busy={manager.busy || !!editor || !!deleting || importing || view === 'academico'} />
           {!manager.demo && !manager.connected && !manager.loading && <p className="storage-warning" role="status">Sin conexión con el backend. La información visible puede estar desactualizada. Crear o modificar tareas requiere conexión; no hay guardado offline. Se reintentará automáticamente.</p>}
           {!manager.demo && manager.warning && <p className="storage-warning" role="alert">{manager.warning}</p>}
           {manager.notice && <div className={'notice ' + manager.notice.type} role={manager.notice.type === 'error' ? 'alert' : 'status'}>
@@ -94,7 +106,7 @@ export default function App({account,onLogout}) {
             {!!manager.excludedDemo && <p className="storage-warning">Se excluyeron {manager.excludedDemo} registros identificados como demo de la importación.</p>}
           </>}
           <Suspense fallback={<p className="panel loading-message" role="status">Cargando sección…</p>}>
-            {view === 'estadisticas' && <StatisticsPage today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected} onGoals={() => navigate('objetivos')}/>}
+            {view === 'estadisticas' && <StatisticsPage academic={academic.data} onAcademic={() => navigate('academico')} today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected} onGoals={() => navigate('objetivos')}/>}
             {view === 'objetivos' && <GoalsPage today={realToday} tasks={manager.tasks} demo={manager.demo} connected={manager.connected}/>}
           </Suspense>
           {!analytical && <>
@@ -110,17 +122,18 @@ export default function App({account,onLogout}) {
                 </div>
                 <button id="new-task" className="new-task" disabled={manager.busy || (!manager.demo && (manager.loading || !manager.connected))} onClick={create}><Plus size={17} />Nueva tarea</button>
               </div>
+              <label className="scope-filter">Ámbito de las tareas<select value={scope} onChange={e=>setScope(e.target.value)}><option value="">Personales y académicas</option><option value="personal">Solo personales</option><option value="academic">Solo académicas</option></select></label>
               <TaskTable
                 key={manager.demo ? 'demo' : 'real'}
-                query={query} expanded={view === 'tareas'} tasks={manager.tasks}
+                query={query} expanded={view === 'tareas'} tasks={scopedTasks}
                 demo={manager.demo} today={today}
                 onEdit={task => setEditor({ task })} onDelete={setDeleting}
-                onStatus={manager.changeStatus} onCreate={create}
+                onStatus={changeStatus} onCreate={create}
                 busy={manager.busy} loading={!manager.demo && manager.loading} connected={manager.connected}
               />
               </>}
               {(view === 'calendario' || view === 'planificacion') && !manager.demo && !manager.connected && <p className="storage-warning">{manager.loading ? 'Cargando tareas…' : 'Sin conexión. Los datos visibles pueden estar desactualizados.'}</p>}
-              {view === 'calendario' && <CalendarPage tasks={visibleTasks} today={today} selected={calendarDate} onSelect={setCalendarDate} onOpen={openTask} onCreate={create} disabled={disabled} />}
+              {view === 'calendario' && <CalendarPage academic={academic.data} onClass={showSchedule} tasks={visibleTasks} today={today} selected={calendarDate} onSelect={setCalendarDate} onOpen={openTask} onCreate={create} disabled={disabled} />}
               {view === 'planificacion' && <PlanningPage tasks={visibleTasks} today={today} onOpen={openTask} />}
               {(manager.demo || manager.connected || manager.tasks.length > 0) && <ProgressCard summary={summary} />}
               <div className="closing-note">
@@ -130,14 +143,16 @@ export default function App({account,onLogout}) {
               </div>
             </div>
             <aside className="right-column" aria-label="Calendario y próximos vencimientos">
+              {!manager.demo && academic.data.courses.length > 0 && <AcademicSchedule compact today={today} sessions={academic.data.sessions} courses={academic.data.courses} onNavigate={showSchedule} />}
               <CalendarCard today={today} tasks={manager.tasks} onSelect={selectCalendarDate} />
               <UpcomingCard tasks={manager.tasks} today={today} onOpen={openTask} />
               <section className="panel productivity-note"><h2>Organiza. Avanza. Logra.</h2><p>Planifica tus próximas entregas y revisa el avance de tus objetivos.</p><button className="secondary-button" onClick={() => navigate('objetivos')}>Ver mis objetivos</button></section>
             </aside>
           </div>
           </>}
+          {view === 'academico' && <AcademicPage key={academicLanding} initialSection={academicLanding} academic={academic} tasks={manager.tasks} today={today} disabled={disabled} demo={manager.demo} query={query} onCreate={createAcademic} onEdit={task=>setEditor({task})} onDelete={setDeleting} onStatus={changeStatus} />}
           {view === 'configuracion' && <SecuritySettings account={account} onLogout={onLogout} connected={manager.connected}/>}
-          {view !== 'configuracion' && <ReminderPanel reminders={reminders} demo={manager.demo} connected={manager.connected} onOpen={openTask} />}
+          {view !== 'configuracion' && <ReminderPanel reminders={reminders} demo={manager.demo} connected={manager.connected} onOpen={openTask} onOpenReminder={openReminder} />}
           <footer className="page-footer">
             <span>ALIRA <span className="muted">· Gestor personal de tareas</span></span>
             <span>Hecho para avanzar a tu ritmo.</span>
@@ -145,9 +160,9 @@ export default function App({account,onLogout}) {
         </main>
       </div>
     </div>
-    {detailedTask && <TaskDetails task={detailedTask} onClose={() => setDetailsId(null)} disabled={disabled} onEdit={task => { setDetailsId(null); setEditor({ task }) }} onDelete={task => { setDetailsId(null); setDeleting(task) }} />}
+    {detailedTask && <TaskDetails courses={academic.data.courses} task={detailedTask} onClose={() => setDetailsId(null)} disabled={disabled} onEdit={task => { setDetailsId(null); setEditor({ task }) }} onDelete={task => { setDetailsId(null); setDeleting(task) }} />}
     {importing && <ImportTasksDialog count={manager.localTasks.length} onConfirm={manager.importLocal} onClose={() => setImporting(false)} />}
-    {editor && <TaskForm task={editor.task} initialDate={editor.initialDate} categories={[...new Set(manager.tasks.map(t => t.categoria))]} onSave={manager.save} onClose={() => setEditor(null)} />}
+    {editor && <TaskForm courses={manager.demo ? [] : academic.data.courses} tasks={manager.tasks} initialAcademic={editor.initialAcademic} task={editor.task} initialDate={editor.initialDate} categories={[...new Set(manager.tasks.map(t => t.categoria))]} onSave={saveTask} onClose={() => setEditor(null)} />}
     {deleting && <DeleteTaskDialog task={deleting} onConfirm={manager.remove} onClose={() => setDeleting(null)} />}
   </>
 }

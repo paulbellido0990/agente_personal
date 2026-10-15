@@ -75,7 +75,7 @@ test('migración v2 a la versión actual conserva tareas y avisos; completedAt h
   assert.equal(db.prepare("SELECT occurredAt FROM task_events WHERE kind='created'").get().occurredAt,before.createdAt)
   db.close();db=openDatabase(path)
   assert.equal(db.prepare('SELECT count(*) AS n FROM task_events').get().n,1)
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,5);db.close()
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,6);db.close()
 })
 test('finalización real, edición, reapertura e importación sin fechas falsas',()=>{
   const db=openDatabase(':memory:')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Bell } from 'lucide-react'
 import { formatDate } from '../services/tasks'
-export default function ReminderPanel({ reminders, demo, connected, onOpen }) {
+export default function ReminderPanel({ reminders, demo, connected, onOpen, onOpenReminder }) {
   const [showRead, setShowRead] = useState(false)
   const displayed = reminders.events.filter(e => showRead || !e.readAt)
   return <section className="panel reminder-panel" id="recordatorios" tabIndex="-1" aria-labelledby="reminders-heading">
@@ -14,7 +14,7 @@ export default function ReminderPanel({ reminders, demo, connected, onOpen }) {
       {!connected && <p className="storage-warning" role="status">Sin conexión: los avisos visibles son la última consulta y pueden estar desactualizados.</p>}
       {reminders.error && <p className="storage-warning" role="alert">No se pudieron actualizar los avisos: {reminders.error}</p>}
       {reminders.loading && <p className="loading-message" role="status">Cargando avisos…</p>}
-      <ul className="reminder-events">{displayed.map(event => <li key={event.id}><div><button className="reminder-open" onClick={() => onOpen(event.taskId)}>{event.titulo}</button><p>Vence el {formatDate(event.fechaLimite)} · {event.daysBefore === 0 ? 'El mismo día' : event.daysBefore + ' días antes'}{event.readAt && ' · Leído'}</p></div>{!event.readAt && <button className="secondary-button" disabled={!connected} onClick={() => reminders.markRead(event.id)} aria-label={'Marcar leído: ' + event.titulo}>Marcar leído</button>}</li>)}</ul>
+      <ul className="reminder-events">{displayed.map(event => <li key={event.id}><div><button className="reminder-open" onClick={() => onOpenReminder ? onOpenReminder(event) : onOpen(event.taskId)}>{event.titulo}</button><p>Vence el {formatDate(event.fechaLimite)} · {event.daysBefore === 0 ? 'El mismo día' : event.daysBefore + ' días antes'}{event.readAt && ' · Leído'}</p></div>{!event.readAt && <button className="secondary-button" disabled={!connected} onClick={() => reminders.markRead(event.id)} aria-label={'Marcar leído: ' + event.titulo}>Marcar leído</button>}</li>)}</ul>
       {!reminders.loading && !reminders.error && !displayed.length && <p className="calendar-empty">No hay avisos pendientes.</p>}
     </>}
   </section>
