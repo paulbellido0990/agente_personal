@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { buildTask, validateTask, selectTasks, validDate, statusLabels, priorityLabels } from '../../../shared/tasks.js'
 import { HttpError } from '../errors.js'
-const editable = ['titulo','descripcion','categoria','prioridad','estado','fechaLimite']
+const editable = ['titulo','descripcion','categoria','prioridad','estado','fechaLimite','recordatorio']
 const recordFields = [...editable, 'id','createdAt','updatedAt']
-const same = (a, b) => editable.every(key => a[key] === b[key])
+const same = (a, b) => editable.every(key => (a[key] ?? null) === (b[key] ?? null))
 export function validId(id) {
   // Los IDs locales previos pueden no ser UUID; se preservan sin interpolarlos en SQL.
   return typeof id === 'string' && /^[A-Za-z0-9_-]{1,120}$/.test(id) && !id.startsWith('demo-')
@@ -39,10 +39,11 @@ export function createTaskService(repo) {
   return {
     get,
     list(query) {
-      const allowed = ['q','estado','prioridad','categoria','sort','order']
+      const allowed = ['q','estado','prioridad','categoria','sort','order','from','to']
       if (Object.keys(query).some(k => !allowed.includes(k)) || Object.values(query).some(v => typeof v !== 'string')) throw new HttpError(400, 'Filtros no válidos.')
       if (query.estado && !Object.hasOwn(statusLabels, query.estado) || query.prioridad && !Object.hasOwn(priorityLabels, query.prioridad) || query.sort && !['fechaLimite','prioridad','createdAt'].includes(query.sort) || query.order && !['asc','desc'].includes(query.order)) throw new HttpError(400, 'Estado, prioridad u orden no válido.')
-      return selectTasks(repo.list(), { query: query.q, status: query.estado, priority: query.prioridad, category: query.categoria, sort: query.sort, descending: query.order === 'desc' })
+      if (query.from && !validDate(query.from) || query.to && !validDate(query.to) || query.from && query.to && query.from > query.to) throw new HttpError(400, 'El rango de fechas no es válido.')
+      return selectTasks(repo.list().filter(t => (!query.from || t.fechaLimite && t.fechaLimite >= query.from) && (!query.to || t.fechaLimite && t.fechaLimite <= query.to)), { query: query.q, status: query.estado, priority: query.prioridad, category: query.categoria, sort: query.sort, descending: query.order === 'desc' })
     },
     create(body) {
       const task = taskInput(body)
@@ -56,7 +57,7 @@ export function createTaskService(repo) {
     update(id, body) {
       const previous = get(id)
       if (body?.id !== undefined) throw new HttpError(400, 'No se puede modificar el identificador.')
-      const input = taskInput(body)
+      const input = taskInput({ ...body, recordatorio: body?.recordatorio === undefined ? (body?.fechaLimite ? previous.recordatorio : null) : body.recordatorio })
       return repo.update({ ...input, id, createdAt: previous.createdAt, updatedAt: new Date().toISOString() })
     },
     status(id, body) {

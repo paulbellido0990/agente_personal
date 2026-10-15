@@ -28,6 +28,8 @@ export function validateTask(input) {
   if (!owns(priorityLabels, input.prioridad)) errors.prioridad = 'Selecciona una prioridad válida.'
   if (!owns(statusLabels, input.estado)) errors.estado = 'Selecciona un estado válido.'
   if (input.fechaLimite !== undefined && input.fechaLimite !== null && input.fechaLimite !== '' && !validDate(input.fechaLimite)) errors.fechaLimite = 'Indica una fecha válida.'
+  if (input.recordatorio !== undefined && input.recordatorio !== null && ![0,1,3].includes(input.recordatorio)) errors.recordatorio = 'Selecciona un recordatorio válido.'
+  if (input.recordatorio != null && !validDate(input.fechaLimite)) errors.recordatorio = 'Define una fecha límite para activar recordatorios.'
   return errors
 }
 export function buildTask(input, previous = null, now = new Date().toISOString()) {
@@ -38,6 +40,7 @@ export function buildTask(input, previous = null, now = new Date().toISOString()
     categoria: input.categoria?.trim() || 'Sin categoría',
     prioridad: input.prioridad, estado: input.estado, fechaLimite: input.fechaLimite || null,
     createdAt: previous?.createdAt ?? now, updatedAt: now,
+    recordatorio: input.recordatorio === undefined ? previous?.recordatorio ?? null : input.recordatorio,
   }
 }
 export function normalizeTasks(records) {
@@ -55,6 +58,7 @@ export function normalizeTasks(records) {
       estado: owns(statusLabels, record.estado) ? record.estado : 'pendiente',
       fechaLimite: validDate(record.fechaLimite) ? record.fechaLimite : null,
       createdAt: stamp(record.createdAt), updatedAt: stamp(record.updatedAt),
+      ...(Object.hasOwn(record, 'recordatorio') ? { recordatorio: validDate(record.fechaLimite) && [0,1,3].includes(record.recordatorio) ? record.recordatorio : null } : {}),
     })
     seen.add(record.id)
   }

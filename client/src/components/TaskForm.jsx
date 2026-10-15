@@ -1,14 +1,18 @@
 import { useRef, useState } from 'react'
 import Modal from './Modal'
+import { reminderLabels } from '../../../shared/calendar'
 import { statusLabels, priorityLabels, validateTask } from '../services/tasks'
-export default function TaskForm({ task, categories, onSave, onClose }) {
-  const [values, setValues] = useState(() => task ? { ...task, fechaLimite: task.fechaLimite || '' } : { titulo: '', descripcion: '', categoria: '', prioridad: 'media', estado: 'pendiente', fechaLimite: '' })
+export default function TaskForm({ task, categories, onSave, onClose, initialDate }) {
+  const [values, setValues] = useState(() => task ? { ...task, fechaLimite: task.fechaLimite || '', recordatorio: task.recordatorio ?? null } : { titulo: '', descripcion: '', categoria: '', prioridad: 'media', estado: 'pendiente', fechaLimite: initialDate || '', recordatorio: null })
   const [errors, setErrors] = useState({})
   const [saveError, setSaveError] = useState('')
   const [pending, setPending] = useState(false)
   const [requestId] = useState(() => crypto.randomUUID())
   const formRef = useRef(null)
-  function update(event) { setValues({ ...values, [event.target.name]: event.target.value }) }
+  function update(event) {
+    const { name,value } = event.target
+    setValues({ ...values, [name]: name === 'recordatorio' ? value === 'off' ? null : Number(value) : value, ...(name === 'fechaLimite' && !value ? { recordatorio: null } : {}) })
+  }
   async function submit(event) {
     event.preventDefault()
     if (pending) return
@@ -34,6 +38,9 @@ export default function TaskForm({ task, categories, onSave, onClose }) {
     <div className="form-grid"><label htmlFor="prioridad">Prioridad *<select {...field('prioridad')}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{error('prioridad')}</label>
     <label htmlFor="estado">Estado *<select {...field('estado')}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{error('estado')}</label></div>
     <div className="date-field"><label htmlFor="fechaLimite">Fecha límite</label><input {...field('fechaLimite')} aria-describedby={errors.fechaLimite ? 'fechaLimite-error date-help' : 'date-help'} type="date" min="0001-01-01" max="9999-12-31" />{error('fechaLimite')}<small className="muted" id="date-help">Opcional. Se interpreta como fecha local en Lima. Se permiten fechas pasadas.</small></div>
+    <label htmlFor="recordatorio">Recordatorio<select {...field('recordatorio')} value={values.recordatorio ?? 'off'} disabled={!values.fechaLimite}>
+      {Object.entries(reminderLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
+    </select>{error('recordatorio')}</label><small className="muted">Opcional. Requiere fecha límite. Los avisos se recuperan al abrir ALIRA; las notificaciones automáticas requieren mantenerla abierta.</small>
     {saveError && <p className="storage-warning" role="alert">{saveError}</p>}
     <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button" type="submit">{pending ? 'Guardando…' : task ? 'Guardar cambios' : 'Crear tarea'}</button></div>
   </fieldset></form></Modal>

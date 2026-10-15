@@ -20,6 +20,9 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
     }
   }
   return {
+    reminders: () => request('/reminders'),
+    readReminder: id => request('/reminders/' + encodeURIComponent(id) + '/read', { method: 'PATCH', body: {} }),
+    claimReminder: id => request('/reminders/' + encodeURIComponent(id) + '/claim', { method: 'POST', body: {} }),
     list: signal => request('/tasks', { signal }),
     create: (task, id) => request('/tasks', { method: 'POST', body: { ...task, id } }),
     update: (id, task) => request('/tasks/' + encodeURIComponent(id), { method: 'PUT', body: task }),
@@ -30,7 +33,7 @@ export function createTaskApi(baseUrl = defaultUrl, fetcher = globalThis.fetch) 
 }
 export const taskApi = createTaskApi(import.meta.env?.VITE_API_URL || defaultUrl)
 export function taskPayload(input) {
-  return { titulo: input.titulo, descripcion: input.descripcion, categoria: input.categoria, prioridad: input.prioridad, estado: input.estado, fechaLimite: input.fechaLimite || null }
+  return { titulo: input.titulo, descripcion: input.descripcion, categoria: input.categoria, prioridad: input.prioridad, estado: input.estado, fechaLimite: input.fechaLimite || null, recordatorio: input.recordatorio ?? null }
 }
 export async function importInBatches(api, tasks) {
   let imported = 0, skipped = 0

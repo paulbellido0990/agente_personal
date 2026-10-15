@@ -1,0 +1,131 @@
+import { test, expect } from '@playwright/test'
+import { localDay, addDays, formatDate } from '../../shared/tasks.js'
+const API='http://127.0.0.1:3011/api'
+const today=localDay()
+const input={titulo:'Actividad',descripcion:'Información que debe conservarse',categoria:'Estudio',prioridad:'alta',estado:'pendiente',fechaLimite:today}
+test.beforeEach(async({request})=>{
+  for(const task of (await(await request.get(API+'/tasks')).json()).data) await request.delete(API+'/tasks/'+task.id)
+})
+test('calendario mensual, semanal y diario; crear desde fecha y editar sin perder detalles',async({page,request},testInfo)=>{
+  await page.goto('/')
+  await expect(page.getByRole('button',{name:'Nueva tarea',exact:true})).toBeEnabled()
+  await page.getByRole('button',{name:'Calendario',exact:true}).click()
+  const calendar=page.locator('.calendar-page')
+  await expect(calendar.getByRole('button',{name:'Mes',exact:true})).toHaveAttribute('aria-pressed','true')
+  await calendar.getByRole('button',{name:'Periodo siguiente',exact:true}).click()
+  await calendar.getByRole('button',{name:'Hoy',exact:true}).click()
+  await calendar.getByRole('button',{name:'Crear para esta fecha',exact:true}).click()
+  await expect(page.getByLabel('Fecha límite',{exact:true})).toHaveValue(today)
+  await page.getByLabel('Título *',{exact:true}).fill('Entrega desde calendario')
+  await page.getByRole('textbox',{name:'Descripción',exact:true}).fill(input.descripcion)
+  await page.getByRole('button',{name:'Crear tarea',exact:true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(calendar.locator('.selected-agenda').getByText('Entrega desde calendario',{exact:true})).toBeVisible()
+  for(const view of ['Semana','Día','Mes']) {
+    await calendar.getByRole('button',{name:view,exact:true}).click()
+    await expect(calendar.locator('.selected-agenda').getByText('Entrega desde calendario',{exact:true})).toBeVisible()
+  }
+  await calendar.locator('.selected-agenda').getByRole('button').filter({hasText:'Entrega desde calendario'}).click()
+  await page.getByRole('button',{name:'Editar tarea',exact:true}).click()
+  await expect(page.getByRole('textbox',{name:'Descripción',exact:true})).toHaveValue(input.descripcion)
+  await page.getByLabel('Fecha límite',{exact:true}).fill(addDays(today,1))
+  await page.getByRole('button',{name:'Guardar cambios',exact:true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(calendar.locator('.selected-agenda').getByText('Entrega desde calendario',{exact:true})).toHaveCount(0)
+  await calendar.getByRole('button',{name:formatDate(addDays(today,1))+', 1 tareas',exact:true}).click()
+  await expect(calendar.locator('.selected-agenda').getByText('Entrega desde calendario',{exact:true})).toBeVisible()
+  expect((await(await request.get(API+'/tasks')).json()).data).toHaveLength(1)
+  await page.evaluate(()=>window.scrollTo(0,0))
+  await page.screenshot({path:testInfo.outputPath('calendar-desktop.png'),fullPage:true})
+})
+test('planificación muestra periodos reales y vencidas sin horarios inventados',async({page,request})=>{
+  for(const extra of [
+    {titulo:'Hoy real'}, {titulo:'Mañana real',fechaLimite:addDays(today,1)},
+    {titulo:'Séptimo día',fechaLimite:addDays(today,6)}, {titulo:'Fuera de semana',fechaLimite:addDays(today,7)},
+    {titulo:'Vencida real',fechaLimite:addDays(today,-1)}, {titulo:'Sin fecha real',fechaLimite:null},
+    {titulo:'Completada real',estado:'completada'},
+  ]) await request.post(API+'/tasks',{data:{...input,...extra}})
+  await page.goto('/')
+  await page.getByRole('button',{name:'Planificación',exact:true}).click()
+  const planning=page.locator('.planning-page')
+  await expect(planning.getByText('Hoy real',{exact:true})).toBeVisible()
+  await planning.getByRole('button',{name:/^Mañana/}).click()
+  await expect(planning.getByText('Mañana real',{exact:true})).toBeVisible()
+  await planning.getByRole('button',{name:/^Próximos siete/}).click()
+  await expect(planning.getByText('Séptimo día',{exact:true})).toBeVisible()
+  await expect(planning.getByText('Fuera de semana',{exact:true})).toHaveCount(0)
+  await planning.getByRole('button',{name:/^Vencidas/}).click()
+  await expect(planning.getByText('Vencida real',{exact:true})).toBeVisible()
+  await expect(planning.getByText('Vencida',{exact:true})).toBeVisible()
+  await planning.getByRole('button',{name:/^Sin fecha/}).click()
+  await expect(planning.getByText('Sin fecha real',{exact:true})).toBeVisible()
+  await planning.getByRole('button',{name:/^Completadas/}).click()
+  await expect(planning.getByText('Completada real',{exact:true})).toBeVisible()
+})
+test('recordatorio configurable persiste, recupera pendientes y no duplica avisos leídos',async({page,request})=>{
+  await page.goto('/')
+  await expect(page.getByRole('button',{name:'Nueva tarea',exact:true})).toBeEnabled()
+  await page.getByRole('button',{name:'Nueva tarea',exact:true}).click()
+  await page.getByLabel('Título *',{exact:true}).fill('Recordatorio de prueba')
+  await page.getByLabel('Fecha límite',{exact:true}).fill(today)
+  await page.getByRole('combobox',{name:'Recordatorio',exact:true}).selectOption('0')
+  await page.getByRole('button',{name:'Crear tarea',exact:true}).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  const panel=page.locator('#recordatorios')
+  await expect(panel.getByRole('button',{name:'Recordatorio de prueba',exact:true})).toBeVisible()
+  await page.reload()
+  await expect(panel.getByRole('button',{name:'Recordatorio de prueba',exact:true})).toBeVisible()
+  await panel.getByRole('button',{name:'Marcar leído: Recordatorio de prueba',exact:true}).click()
+  await page.reload()
+  await expect(panel.getByRole('button',{name:'Recordatorio de prueba',exact:true})).toHaveCount(0)
+  await panel.getByLabel('Mostrar leídos',{exact:true}).check()
+  await expect(panel.getByRole('button',{name:'Recordatorio de prueba',exact:true})).toHaveCount(1)
+  expect((await(await request.get(API+'/reminders')).json()).data).toHaveLength(1)
+  await page.getByRole('button',{name:'Editar Recordatorio de prueba',exact:true}).click()
+  await expect(page.getByRole('combobox',{name:'Recordatorio',exact:true})).toHaveValue('0')
+  await page.getByRole('combobox',{name:'Recordatorio',exact:true}).selectOption('off')
+  await page.getByRole('button',{name:'Guardar cambios',exact:true}).click()
+  await expect(panel.getByRole('button',{name:'Recordatorio de prueba',exact:true})).toHaveCount(0)
+  expect((await(await request.get(API+'/tasks')).json()).data[0].recordatorio).toBeNull()
+})
+test('notificaciones externas solo con permiso y una vez tras recargar',async({page,request})=>{
+  await request.post(API+'/tasks',{data:{...input,titulo:'Notificación única',recordatorio:0}})
+  await page.addInitScript(()=>{
+    window.__notificationCount=0
+    window.__permissionRequests=0
+    window.Notification=class {
+      static permission='default'
+      static async requestPermission(){window.__permissionRequests++;this.permission='granted';return 'granted'}
+      constructor(){window.__notificationCount++}
+    }
+  })
+  await page.goto('/')
+  const panel=page.locator('#recordatorios')
+  await expect(panel.getByRole('button',{name:'Notificación única',exact:true})).toBeVisible()
+  expect(await page.evaluate(()=>window.__notificationCount)).toBe(0)
+  expect(await page.evaluate(()=>window.__permissionRequests)).toBe(0)
+  await panel.getByRole('button',{name:'Activar notificaciones del navegador',exact:true}).click()
+  await expect.poll(()=>page.evaluate(()=>window.__notificationCount)).toBe(1)
+  await panel.getByRole('button',{name:'Actualizar avisos',exact:true}).click()
+  expect(await page.evaluate(()=>window.__notificationCount)).toBe(1)
+  await page.reload()
+  await expect(panel.getByRole('button',{name:'Notificación única',exact:true})).toBeVisible()
+  await panel.getByRole('button',{name:'Activar notificaciones del navegador',exact:true}).click()
+  await expect(panel.getByRole('button',{name:'Desactivar notificaciones de esta sesión',exact:true})).toBeVisible()
+  expect(await page.evaluate(()=>window.__notificationCount)).toBe(0)
+})
+test('calendario móvil a 360 px, navegación por teclado y sin desbordamiento',async({page,request},testInfo)=>{
+  await request.post(API+'/tasks',{data:{...input,titulo:'Entrega móvil'}})
+  await page.setViewportSize({width:360,height:800})
+  await page.goto('/')
+  await page.getByRole('button',{name:'Abrir menú',exact:true}).click()
+  await page.getByRole('button',{name:'Calendario',exact:true}).click()
+  await expect(page.locator('.selected-agenda').getByText('Entrega móvil',{exact:true})).toBeVisible()
+  const calendar=page.locator('.calendar-page')
+  await calendar.getByRole('button',{name:'Semana',exact:true}).focus()
+  await page.keyboard.press('Enter')
+  await expect(calendar.getByRole('button',{name:'Semana',exact:true})).toHaveAttribute('aria-pressed','true')
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+  await page.evaluate(()=>window.scrollTo(0,0))
+  await page.screenshot({path:testInfo.outputPath('calendar-mobile.png'),fullPage:true})
+})

@@ -85,8 +85,8 @@ test('restricciones SQLite impiden registros inválidos y esquema es idempotente
   const other = openDatabase(dbPath)
   other.close()
   const created = { ...input, id: 'integridad', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-  assert.throws(() => db.prepare('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)').run(created.id, 'a', '', 'Estudio', 'alta', 'pendiente', null, created.createdAt, created.updatedAt))
-  assert.throws(() => db.prepare('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?)').run(created.id, created.titulo, '', 'Estudio', 'alta', 'pendiente', '2026-02-30', created.createdAt, created.updatedAt))
+  assert.throws(() => db.prepare('INSERT INTO tasks (id,titulo,descripcion,categoria,prioridad,estado,fechaLimite,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)').run(created.id, 'a', '', 'Estudio', 'alta', 'pendiente', null, created.createdAt, created.updatedAt))
+  assert.throws(() => db.prepare('INSERT INTO tasks (id,titulo,descripcion,categoria,prioridad,estado,fechaLimite,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)').run(created.id, created.titulo, '', 'Estudio', 'alta', 'pendiente', '2026-02-30', created.createdAt, created.updatedAt))
 })
 test('POST idempotente: repetir ID y contenido no duplica; un conflicto no sobrescribe', async t => {
   const { request } = await fixture(t)
@@ -128,7 +128,7 @@ test('proceso real inicia, se detiene y reinicia conservando SQLite', async t =>
   })
   async function run() {
     // Puerto efímero de prueba, sin afectar el servidor personal.
-    const child = spawn(process.execPath, ['--input-type=module', '-e', "import { openDatabase } from './src/db/database.js'; import { createApp } from './src/app.js'; const db=openDatabase(process.env.ALIRA_TEST_DB); const server=createApp({db}).listen(0,'127.0.0.1',()=>console.log(server.address().port));"], { cwd: new URL('../', import.meta.url), env: { ...process.env, ALIRA_TEST_DB: path }, stdio: ['ignore','pipe','pipe'] })
+    const child = spawn(process.execPath, ['--input-type=module', '-e', "import { openDatabase } from './src/db/database.js'; import { createApp } from './src/app.js'; const db=openDatabase(process.env.ALIRA_TEST_DB); const server=createApp({db,now:()=>new Date('2026-10-14T18:00:00Z')}).listen(0,'127.0.0.1',()=>console.log(server.address().port));"], { cwd: new URL('../', import.meta.url), env: { ...process.env, ALIRA_TEST_DB: path }, stdio: ['ignore','pipe','pipe'] })
     children.push(child)
     const port = await new Promise((resolve, reject) => {
       let output = ''
@@ -139,10 +139,15 @@ test('proceso real inicia, se detiene y reinicia conservando SQLite', async t =>
     return { child, url: 'http://127.0.0.1:' + port }
   }
   const first = await run()
-  const created = await fetch(first.url + '/api/tasks', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(input) }).then(r => r.json())
+  const created = await fetch(first.url + '/api/tasks', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({...input,recordatorio:1}) }).then(r => r.json())
+  const beforeEvents=await fetch(first.url+'/api/reminders').then(r=>r.json())
+  assert.equal(beforeEvents.data.length,1)
   const exited = once(first.child, 'exit'); first.child.kill(); await exited
   const second = await run()
   const found = await fetch(second.url + '/api/tasks/' + created.data.id).then(r => r.json())
   assert.equal(found.data.titulo, input.titulo)
+  const afterEvents=await fetch(second.url+'/api/reminders').then(r=>r.json())
+  assert.equal(afterEvents.data[0].id,beforeEvents.data[0].id)
+  assert.equal(afterEvents.data.length,1)
   const stopped = once(second.child, 'exit'); second.child.kill(); await stopped
 })
