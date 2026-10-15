@@ -28,7 +28,7 @@ export default function Sidebar({ view, onNavigate, open, onClose }) {
         </button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-note"><span className="little-spark"><Sparkles size={19} /></span><h3>Un paso a la vez.</h3><p>Los grandes logros empiezan con pequeñas tareas.</p><span>Tu espacio para avanzar <ArrowUpRight size={14} /></span></div>
       <button className="nav-item" disabled><Settings size={20} /><span>Configuración</span><small>Pronto</small></button>
-      <div className="sidebar-footer"><span className="status-dot" /> Tareas locales · v0.2</div></div>
+      <div className="sidebar-footer"><span className="status-dot" /> React + SQLite · v0.3</div></div>
     </aside>
   </>
 }

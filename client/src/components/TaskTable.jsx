@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Trash2, SearchX, ListTodo } from 'lucide-react'
 import { statusLabels, priorityLabels, formatDate, selectTasks } from '../services/tasks'
-export default function TaskTable({ tasks, query, expanded, demo, today, onEdit, onDelete, onStatus, onCreate }) {
+export default function TaskTable({ tasks, query, expanded, demo, today, onEdit, onDelete, onStatus, onCreate, busy, loading, connected }) {
   const [filters, setFilters] = useState({ status: '', priority: '', category: '', sort: 'fechaLimite', descending: false })
   const categories = [...new Set(tasks.map(t => t.categoria))].sort()
   const filtered = selectTasks(tasks, { ...filters, query })
@@ -17,14 +17,16 @@ export default function TaskTable({ tasks, query, expanded, demo, today, onEdit,
       <button className="sort-button" onClick={() => setFilters({ ...filters, descending: !filters.descending })} aria-label={filters.descending ? 'Cambiar a orden ascendente' : 'Cambiar a orden descendente'}>{filters.descending ? 'Descendente ↓' : 'Ascendente ↑'}</button>
       <button className="secondary-button reset-filters" onClick={() => setFilters({ status: '', priority: '', category: '', sort: 'fechaLimite', descending: false })}>Restablecer filtros</button>
     </div>
+    {!demo && loading && <p className="loading-message" role="status">Cargando tareas…</p>}
+    {!demo && !loading && !connected && <p className="storage-warning" role="status">Sin conexión. La última lista recibida puede estar desactualizada; no se ha reemplazado por datos locales.</p>}
     {!!displayed.length && <div className="table-scroll"><table className="live-task-table"><caption className="sr-only">{demo ? 'Tareas de demostración' : 'Tus tareas'}. Usa las acciones para editar, cambiar estado o eliminar.</caption><thead><tr><th>Tarea</th><th>Prioridad</th><th>Fecha límite</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{displayed.map(task => <tr key={task.id}>
       <td data-label="Tarea"><div className="task-name"><div><strong>{task.titulo}</strong><small>{task.categoria}</small>{task.descripcion && <p className="task-description">{task.descripcion}</p>}</div></div></td>
       <td data-label="Prioridad"><span className={'badge priority-' + task.prioridad}>{priorityLabels[task.prioridad]}</span></td>
       <td data-label="Fecha límite" className="date-cell">{formatDate(task.fechaLimite)}{task.fechaLimite && task.fechaLimite < today && task.estado !== 'completada' && <span className="overdue">Vencida</span>}</td>
-      <td data-label="Estado"><select className={'task-status badge state-' + task.estado} aria-label={'Estado de ' + task.titulo} value={task.estado} onChange={event => onStatus(task.id, event.target.value)}>{Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></td>
-      <td data-label="Acciones"><div className="task-actions"><button className="icon-button" onClick={() => onEdit(task)} aria-label={'Editar ' + task.titulo}><Pencil size={17} /></button><button className="icon-button delete-button" onClick={() => onDelete(task)} aria-label={'Eliminar ' + task.titulo}><Trash2 size={17} /></button></div></td>
+      <td data-label="Estado"><select disabled={busy || (!demo && (loading || !connected))} className={'task-status badge state-' + task.estado} aria-label={'Estado de ' + task.titulo} value={task.estado} onChange={event => onStatus(task.id, event.target.value)}>{Object.entries(statusLabels).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></td>
+      <td data-label="Acciones"><div className="task-actions"><button className="icon-button" disabled={busy || (!demo && (loading || !connected))} onClick={() => onEdit(task)} aria-label={'Editar ' + task.titulo}><Pencil size={17} /></button><button className="icon-button delete-button" disabled={busy || (!demo && (loading || !connected))} onClick={() => onDelete(task)} aria-label={'Eliminar ' + task.titulo}><Trash2 size={17} /></button></div></td>
     </tr>)}</tbody></table></div>}
-    {!displayed.length && <div className="empty-state" role="status">{tasks.length ? <SearchX size={30} /> : <ListTodo size={30} />}<h3>{tasks.length ? 'No hay tareas en esta vista' : 'Tu próximo logro empieza aquí'}</h3><p>{tasks.length ? 'Revisa los filtros, la búsqueda o consulta Mis tareas para ver las completadas.' : 'Crea tu primera tarea y dale espacio a lo importante.'}</p>{!tasks.length && <button className="primary-button" onClick={onCreate}>Crear mi primera tarea</button>}</div>}
-    <footer className="table-footer"><span>{demo ? 'Demo · sin almacenamiento' : 'Tareas guardadas en este navegador'}</span><span>{displayed.length} de {tasks.length} tareas</span></footer>
+    {!loading && (demo || connected) && !displayed.length && <div className="empty-state" role="status">{tasks.length ? <SearchX size={30} /> : <ListTodo size={30} />}<h3>{tasks.length ? 'No hay tareas en esta vista' : 'Tu próximo logro empieza aquí'}</h3><p>{tasks.length ? 'Revisa los filtros, la búsqueda o consulta Mis tareas para ver las completadas.' : 'Crea tu primera tarea y dale espacio a lo importante.'}</p>{!tasks.length && <button className="primary-button" onClick={onCreate}>Crear mi primera tarea</button>}</div>}
+    <footer className="table-footer"><span>{demo ? 'Demo · sin almacenamiento' : 'Tareas recibidas de SQLite'}</span><span>{displayed.length} de {tasks.length} tareas</span></footer>
   </section>
 }

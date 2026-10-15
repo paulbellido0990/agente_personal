@@ -4,3 +4,11 @@ dist/
 .env.*
 !.env.example
 *.log
+
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+playwright-report/
+test-results/
+server/data/

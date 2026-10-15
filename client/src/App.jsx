@@ -9,6 +9,7 @@ import ProgressCard from './components/ProgressCard'
 import AssistantCard from './components/AssistantCard'
 import TaskForm from './components/TaskForm'
 import DeleteTaskDialog from './components/DeleteTaskDialog'
+import ImportTasksDialog from './components/ImportTasksDialog'
 import useTasks from './hooks/useTasks'
 import useToday from './hooks/useToday'
 import { summarize, formatDate } from './services/tasks'
@@ -20,6 +21,7 @@ export default function App() {
   const today = manager.demo ? DEMO_DATE : realToday
   const summary = summarize(manager.tasks, today)
   const [editor, setEditor] = useState(null)
+  const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState(null)
   const [view, setView] = useState('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -47,9 +49,9 @@ export default function App() {
             <Info size={18} />
             <p>{manager.demo
               ? <><strong>Modo demostración.</strong> Tareas y fecha ficticias. Los cambios se conservan solo durante la sesión y están separados de tus tareas.</>
-              : <><strong>Tu espacio personal.</strong> Tus tareas se guardan en este navegador. Puedes explorar una demo separada.</>}
+              : <><strong>Tu espacio personal.</strong> Tus tareas se guardan en la base SQLite del backend local. La demo permanece separada.</>}
             </p>
-            <button className="secondary-button demo-switch" onClick={() => { manager.toggleDemo(); setQuery('') }}>
+            <button className="secondary-button demo-switch" disabled={manager.busy || manager.loading} onClick={() => { manager.toggleDemo(); setQuery('') }}>
               {manager.demo ? 'Volver a mis tareas' : 'Explorar demo'}
             </button>
           </div>
@@ -59,7 +61,20 @@ export default function App() {
             <button className="icon-button" onClick={manager.dismissNotice} aria-label="Cerrar mensaje"><X size={18} /></button>
           </div>}
 
-          <SummaryCards summary={summary} />
+          {!manager.demo && <>
+            <div className="connection-bar" role="status">
+              <span>{manager.loading ? 'Conectando con ALIRA…' : manager.connected ? 'Conectado al backend local' : 'No se pudo conectar con el backend'}</span>
+              <button className="secondary-button" disabled={manager.loading || manager.busy} onClick={manager.reload}>Actualizar listado</button>
+            </div>
+            {!!manager.localTasks.length && <section className="migration-panel" aria-label="Importar tareas locales">
+              <p>Encontramos {manager.localTasks.length} tareas de la fase anterior. Puedes importarlas sin borrar la copia local ni sobrescribir las del servidor.</p>
+              <button className="primary-button" disabled={!manager.connected || manager.loading || manager.busy} onClick={() => setImporting(true)}>Importar tareas locales</button>
+            </section>}
+            {!!manager.excludedDemo && <p className="storage-warning">Se excluyeron {manager.excludedDemo} registros identificados como demo de la importación.</p>}
+          </>}
+          {manager.demo || manager.connected || manager.tasks.length > 0
+            ? <div aria-busy={!manager.demo && manager.loading}><SummaryCards summary={summary} /></div>
+            : <p className="panel loading-message" role="status">{manager.loading ? 'Cargando resumen de tareas…' : 'Resumen no disponible hasta conectar con el servidor.'}</p>}
           <div className="dashboard-columns">
             <div className="main-column">
               <div className="section-toolbar">
@@ -67,7 +82,7 @@ export default function App() {
                   <button onClick={() => navigate('inicio')} className={view === 'inicio' ? 'selected' : ''} aria-pressed={view === 'inicio'}>Vista general</button>
                   <button onClick={() => navigate('tareas')} className={view === 'tareas' ? 'selected' : ''} aria-pressed={view === 'tareas'}>Mis tareas</button>
                 </div>
-                <button id="new-task" className="new-task" onClick={create}><Plus size={17} />Nueva tarea</button>
+                <button id="new-task" className="new-task" disabled={manager.busy || (!manager.demo && (manager.loading || !manager.connected))} onClick={create}><Plus size={17} />Nueva tarea</button>
               </div>
               <TaskTable
                 key={manager.demo ? 'demo' : 'real'}
@@ -75,8 +90,9 @@ export default function App() {
                 demo={manager.demo} today={today}
                 onEdit={task => setEditor({ task })} onDelete={setDeleting}
                 onStatus={manager.changeStatus} onCreate={create}
+                busy={manager.busy} loading={!manager.demo && manager.loading} connected={manager.connected}
               />
-              <ProgressCard summary={summary} />
+              {(manager.demo || manager.connected || manager.tasks.length > 0) && <ProgressCard summary={summary} />}
               <div className="closing-note">
                 <span>Organiza. Avanza. Logra.</span>
                 <p>Tu próxima gran idea merece su propio espacio.</p>
@@ -95,6 +111,7 @@ export default function App() {
         </main>
       </div>
     </div>
+    {importing && <ImportTasksDialog count={manager.localTasks.length} onConfirm={manager.importLocal} onClose={() => setImporting(false)} />}
     {editor && <TaskForm task={editor.task} categories={[...new Set(manager.tasks.map(t => t.categoria))]} onSave={manager.save} onClose={() => setEditor(null)} />}
     {deleting && <DeleteTaskDialog task={deleting} onConfirm={manager.remove} onClose={() => setDeleting(null)} />}
   </>
